@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Login Admin — LabKeeper{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:40px;padding-bottom:40px;display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 200px);">
+
+  <div class="bezel-card reveal" style="width:100%;max-width:420px;">
+    <div class="bezel-card-inner">
+      <a href="/login" class="login-back" style="margin-bottom:1.5rem;display:inline-block;">← Kembali</a>
+
+      <span class="eyebrow-tag">Admin</span>
+      <h1 class="login-heading" style="font-size:clamp(24px,3.4vw,32px);">Login Admin</h1>
+      <p class="login-subheading" style="margin-bottom:1.5rem;">Panel Pengelolaan LabKeeper</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}" style="margin-bottom:1rem;">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="/admin/login" class="login-form">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" name="username" class="form-input" placeholder="Masukkan username" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" name="password" class="form-input" placeholder="Masukkan password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-full">Masuk</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

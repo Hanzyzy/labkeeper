@@ -1,0 +1,96 @@
+{% extends "admin_base.html" %}
+{% block title %}Dashboard — Admin LabKeeper{% endblock %}
+{% block content %}
+
+<div class="dashboard-container reveal">
+
+  <header class="page-header" style="margin-bottom:2rem;">
+    <span class="eyebrow-tag">Dashboard</span>
+    <h1 class="page-title">Selamat Datang, <span class="highlight">Admin</span></h1>
+    <p class="page-subtitle">Ringkasan aktivitas LabKeeper hari ini.</p>
+  </header>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid reveal reveal-delay-1">
+    <div class="stat-card">
+      <div class="stat-number">{{ total_alat }}</div>
+      <div class="stat-label">Total Alat</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ tersedia }}</div>
+      <div class="stat-label">Tersedia</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ dipinjam }}</div>
+      <div class="stat-label">Dipinjam</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ telat }}</div>
+      <div class="stat-label">Telat</div>
+    </div>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="content-grid">
+
+    <!-- Recent Borrowings -->
+    <div class="section-card reveal reveal-delay-2">
+      <div class="section-header-bar">
+        <h2 class="section-title">Peminjaman Terbaru</h2>
+        <a href="/admin/borrowings" class="section-action">Lihat Semua →</a>
+      </div>
+
+      {% if recent_borrowings %}
+      <div class="activity-list">
+        {% for b in recent_borrowings[:8] %}
+        <div class="activity-item">
+          <div class="activity-avatar">{{ b.student_name[0] if b.student_name else 'S' }}</div>
+          <div class="activity-info">
+            <div class="activity-text">
+              <strong>{{ b.student_name }}</strong> meminjam <strong>{{ b.tool_name }}</strong>
+            </div>
+            <div class="activity-time">{{ b.start_time.strftime('%d/%m/%Y %H:%M') }}</div>
+          </div>
+          {% if b.return_time %}
+            <span class="activity-status returned">Kembali</span>
+          {% elif b.is_overdue() %}
+            <span class="activity-status overdue">Telat</span>
+          {% else %}
+            <span class="activity-status borrowed">Aktif</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding:3rem 2rem;text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:0.75rem;">◇</div>
+        <div style="font-size:0.875rem;color:var(--muted);">Belum ada peminjaman.</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-card reveal reveal-delay-3">
+      <div class="section-header-bar">
+        <h2 class="section-title">Aksi Cepat</h2>
+      </div>
+      <div class="quick-actions-grid">
+        <a href="/admin/tools?action=add" class="quick-action-btn">
+          <span class="icon">＋</span> Tambah Alat
+        </a>
+        <a href="/admin/students?action=add" class="quick-action-btn">
+          <span class="icon">○</span> Tambah Siswa
+        </a>
+        <a href="/admin/qr-labels" class="quick-action-btn">
+          <span class="icon">⌗</span> Cetak QR
+        </a>
+        <a href="/admin/borrowings" class="quick-action-btn">
+          <span class="icon">≡</span> Peminjaman
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

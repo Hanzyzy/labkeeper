@@ -1,0 +1,175 @@
+"""LabKeeper — Database Models (SQLAlchemy / SQLite)"""
+from datetime import datetime, timedelta, timezone
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+
+db = SQLAlchemy()
+
+
+class Admin(db.Model):
+    __tablename__ = "admins"
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    full_name = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, raw: str):
+        self.password_hash = generate_password_hash(raw)
+
+    def check_password(self, raw: str) -> bool:
+        return check_password_hash(self.password_hash, raw)
+
+
+class Student(db.Model):
+    __tablename__ = "students"
+    id = db.Column(db.Integer, primary_key=True)
+    nis = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    class_name = db.Column(db.String(20), nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    phone = db.Column(db.String(20))
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    borrowings = db.relationship("Borrowing", backref="student", lazy=True)
+
+    def set_password(self, raw: str):
+        self.password_hash = generate_password_hash(raw)
+
+    def check_password(self, raw: str) -> bool:
+        return check_password_hash(self.password_hash, raw)
+
+
+class Tool(db.Model):
+    __tablename__ = "tools"
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(30), unique=True, nullable=False, index=True)  # MTR-001
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50))                                        # Multimeter, ESP32, dll
+    lab_location = db.Column(db.String(50))                                    # Rak A3
+    condition = db.Column(db.String(20), default="Baik")                       # Baik / Rusak Ringan / Rusak Berat
+    description = db.Column(db.Text)
+    photo_emoji = db.Column(db.String(10), default="🔧")                        # placeholder visual
+    qr_path = db.Column(db.String(200))                                         # static/qr_codes/MTR-001.png
+    icon = db.Column(db.String(10), default="📦")                              # visual icon
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    borrowings = db.relationship("Borrowing", backref="tool", lazy=True)
+
+    @property
+    def qr_url(self):
+        """Public URL to this tool's QR code image."""
+        if self.qr_path:
+            from flask import url_for
+            # qr_path is like "static/qr_codes/ARD-01.png"
+            # url_for static needs the relative part after "static/"
+            relative = self.qr_path.replace("\\", "/")
+            if relative.startswith("static/"):
+                relative = relative[7:]  # remove "static/" prefix
+            return url_for('static', filename=relative, _external=False)
+        return None
+
+    @property
+    def active_borrowings_count(self):
+        return Borrowing.query.filter_by(tool_id=self.id, status="active").count()
+
+    def current_borrowing(self):
+        """Return the active borrowing row (not yet returned), or None."""
+        return (
+            Borrowing.query.filter_by(tool_id=self.id, status="active")
+            .order_by(Borrowing.borrow_date.desc())
+            .first()
+        )
+
+    def is_available(self) -> bool:
+        return self.current_borrowing() is None and self.is_active
+
+
+class Borrowing(db.Model):
+    __tablename__ = "borrowings"
+    id = db.Column(db.Integer, primary_key=True)
+    tool_id = db.Column(db.Integer, db.ForeignKey("tools.id"), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=True)
+    # Snapshot info murid — diisi saat hapus Student, supaya history tetap punya identitas
+    archived_student_name = db.Column(db.String(100))
+    archived_student_nis = db.Column(db.String(20))
+    borrow_date = db.Column(db.DateTime, default=datetime.utcnow)
+    deadline = db.Column(db.DateTime, nullable=False)
+    return_date = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default="active")   # active / returned / overdue
+    condition_after = db.Column(db.String(20))
+    notes = db.Column(db.Text)
+    force_returned = db.Column(db.Boolean, default=False)   # if admin forced the return
+    extend_count = db.Column(db.Integer, default=0)         # jumlah kali diperpanjang
+
+    @property
+    def student_name(self):
+        # Pakai nama live kalau murid masih ada, fallback ke snapshot kalau sudah dihapus
+        return self.student.name if self.student else (self.archived_student_name or "(murid dihapus)")
+
+    @property
+    def student_nis(self):
+        return self.student.nis if self.student else (self.archived_student_nis or "-")
+    
+    @property
+    def tool_name(self):
+        return self.tool.name if self.tool else ""
+    
+    @property
+    def tool_code(self):
+        return self.tool.code if self.tool else ""
+    
+    @property
+    def start_time(self):
+        return self.borrow_date
+    
+    @property
+    def due_time(self):
+        return self.deadline
+    
+    @property
+    def return_time(self):
+        return self.return_date
+
+    @staticmethod
+    def default_deadline_hours() -> int:
+        cfg = Config.get_solo()
+        return cfg.loan_duration_hours if cfg else 2
+
+    def seconds_remaining(self) -> int:
+        """Positive = time left, negative = overdue (in seconds)."""
+        delta = self.deadline - datetime.now(timezone.utc).replace(tzinfo=None)
+        return int(delta.total_seconds())
+
+    def is_overdue(self) -> bool:
+        return self.seconds_remaining() < 0
+
+    def elapsed_seconds(self) -> int:
+        delta = datetime.now(timezone.utc).replace(tzinfo=None) - self.borrow_date
+        return int(delta.total_seconds())
+
+
+class Config(db.Model):
+    """Singleton row (id=1) — runtime settings admin can change."""
+    __tablename__ = "config"
+    id = db.Column(db.Integer, primary_key=True)
+    loan_duration_hours = db.Column(db.Integer, default=2)
+    school_name = db.Column(db.String(100), default="SMK Telkom")
+    base_url = db.Column(db.String(200), default="http://localhost:5000")
+
+    @classmethod
+    def get_solo(cls):
+        return cls.query.get(1)
+
+
+def init_db(app):
+    """Create tables and seed the singleton Config row if missing."""
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
+        if Config.get_solo() is None:
+            db.session.add(Config(id=1, loan_duration_hours=2, school_name="SMK Telkom",
+                                  base_url="http://localhost:5000"))
+            db.session.commit()

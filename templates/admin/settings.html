@@ -1,0 +1,54 @@
+{% extends "admin_base.html" %}
+{% block title %}Pengaturan — Admin LabKeeper{% endblock %}
+{% block content %}
+
+<div class="admin-content">
+
+<div class="page-header reveal" style="text-align:center;">
+  <span class="eyebrow-tag purple">Sistem</span>
+  <h1 class="page-title" style="margin-top:0.5rem;">Pengaturan</h1>
+</div>
+
+<form method="POST" action="/admin/settings" style="width:100%;max-width:640px;" class="reveal reveal-delay-1">
+  <div class="bezel-card" style="margin-bottom:1.5rem;">
+    <div class="bezel-card-inner">
+      <h3 style="font-size:0.875rem;font-weight:700;color:var(--text-secondary);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1rem;">⏰ Durasi Peminjaman</h3>
+      
+      <div class="form-group">
+        <label class="form-label">Durasi Default (jam)</label>
+        <input type="number" name="duration_hours" class="form-input w-32" value="{{ settings.loan_duration_hours }}" min="1" max="168">
+        <div class="form-hint">Batas waktu peminjaman dalam jam. Default: 24 jam.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bezel-card" style="margin-bottom:1.5rem;">
+    <div class="bezel-card-inner">
+      <h3 style="font-size:0.875rem;font-weight:700;color:var(--text-secondary);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1rem;">🔑 Keamanan</h3>
+      
+      <div class="form-group">
+        <label class="form-label">Password Admin Baru</label>
+        <input type="password" name="new_password" class="form-input" placeholder="Kosongkan jika tidak diubah">
+      </div>
+    </div>
+  </div>
+
+  <div class="bezel-card" style="margin-bottom:1.5rem;">
+    <div class="bezel-card-inner">
+      <h3 style="font-size:0.875rem;font-weight:700;color:var(--text-secondary);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1rem;">📊 Data</h3>
+      
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <button type="button" onclick="if(confirm('Reset semua data peminjaman?')){window.location='/admin/reset-borrowings';}" class="btn btn-danger">Reset Riwayat Peminjaman</button>
+        <button type="button" onclick="if(confirm('Generate QR untuk semua alat?')){window.location='/admin/generate-all-qr';}" class="btn btn-secondary">Generate Semua QR</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:0.75rem;justify-content:center;">
+    <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
+  </div>
+</form>
+
+</div><!-- .admin-content -->
+
+{% endblock %}

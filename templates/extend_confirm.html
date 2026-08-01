@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Konfirmasi Pengembalian — LabKeeper{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:32px;padding-bottom:64px;max-width:560px;">
+
+  <a href="/history" class="login-back reveal" style="margin-bottom:1.5rem;display:inline-block;">← Kembali ke Riwayat</a>
+
+  <div class="bezel-card reveal reveal-delay-1">
+    <div class="bezel-card-inner">
+      <span class="eyebrow-tag">Pengembalian</span>
+      <h1 class="page-title" style="font-size:clamp(24px,3.4vw,36px);margin:8px 0 6px;">Konfirmasi</h1>
+      <p class="page-subtitle" style="margin:0 0 1.5rem;">Pastikan Anda akan mengembalikan alat ini</p>
+
+      <!-- Tool Info -->
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border:1px solid var(--line);background:var(--bg);margin-bottom:1.5rem;">
+        <div style="width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem;border:1px solid var(--line);background:var(--paper);">{{ tool.icon or '◇' }}</div>
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:1rem;">{{ tool.name }}</div>
+          <div style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);">{{ tool.code }}</div>
+        </div>
+      </div>
+
+      <!-- Time info -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.875rem 0;border-bottom:1px solid var(--line);">
+        <span class="form-label" style="margin:0;">Tanggal Pinjam</span>
+        <span style="font-family:var(--font-mono);font-size:0.875rem;">{{ borrowing.borrow_date.strftime('%d/%m/%Y %H:%M') }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.875rem 0;">
+        <span class="form-label" style="margin:0;">Durasi</span>
+        <span style="font-family:var(--font-mono);font-size:0.875rem;">{{ borrowing.borrow_date|timesince }}</span>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1.5rem;">
+        <form method="POST" action="/kembalikan/{{ tool.code }}" style="display:flex;gap:0.75rem;">
+          <button type="submit" class="btn btn-primary w-full">Ya, Kembalikan</button>
+        </form>
+        <a href="/history" class="btn btn-secondary w-full">Batal</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

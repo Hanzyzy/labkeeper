@@ -1,0 +1,208 @@
+{% extends "admin_base.html" %}
+{% block title %}Peminjaman — Admin LabKeeper{% endblock %}
+{% block content %}
+
+<div class="borrowings-container">
+
+  <header class="page-header reveal" style="margin-bottom:1.5rem;">
+    <span class="eyebrow-tag">Riwayat</span>
+    <h1 class="page-title">Semua Peminjaman</h1>
+  </header>
+
+  <!-- Search & Filter -->
+  <form method="GET" action="/admin/borrowings" class="reveal" style="margin-bottom:1rem;">
+    <div class="filter-bar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input type="text" name="search" class="form-input filter-search" placeholder="Cari siswa atau alat..." value="{{ search or '' }}" style="flex:1;min-width:200px;">
+      <select name="status_filter" class="form-input filter-status" style="width:auto;">
+        <option value="">Semua Status</option>
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Aktif</option>
+        <option value="returned" {% if status_filter == 'returned' %}selected{% endif %}>Dikembalikan</option>
+        <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Telat</option>
+      </select>
+      <button type="submit" class="filter-btn">Filter</button>
+      <a href="/admin/borrowings/export-csv?search={{ search or '' }}&status_filter={{ status_filter or '' }}" class="btn btn-secondary" style="font-size:13px;padding:8px 16px;margin-left:auto;font-weight:600;">📊 Export Excel (.xlsx)</a>
+    </div>
+  </form>
+
+  {% if borrowings %}
+  <form id="bulkBorrowingsForm" method="POST" action="/admin/borrowings/bulk-action">
+    <div class="borrowings-list">
+      {% for b in borrowings %}
+      <div class="borrowing-card reveal" data-borrowing-card style="transition-delay: {{ loop.index0 * 0.04 }}s;">
+
+        <div class="card-top-row">
+          {% if not b.return_time %}
+          <label class="bulk-checkbox-wrapper">
+            <input type="checkbox" name="bid" value="{{ b.id }}" data-bulk-checkbox>
+            <span class="bulk-check-visual"></span>
+          </label>
+          {% else %}
+          <div style="width:24px;" title="Sudah dikembalikan"></div>
+          {% endif %}
+          <div class="card-student-info">
+            <div class="card-avatar">{{ b.student_name[0] if b.student_name else 'S' }}</div>
+            <div>
+              <h3 class="card-name">{{ b.student_name }}</h3>
+              <p class="card-nis">{{ b.student_nis }} &middot; {{ b.tool_name }} ({{ b.tool_code }})</p>
+            </div>
+          </div>
+          {% if b.return_time %}
+            <span class="activity-status returned">Kembali</span>
+          {% elif b.is_overdue() %}
+            <span class="activity-status overdue">Telat</span>
+          {% else %}
+            <span class="activity-status borrowed">Aktif</span>
+          {% endif %}
+        </div>
+
+        <div class="card-meta">
+          <div class="meta-item">
+            <span class="meta-label">Pinjam</span>
+            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.start_time.strftime('%d/%m/%Y %H:%M') }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Batas Kembali</span>
+            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.due_time.strftime('%d/%m/%Y %H:%M') if b.due_time else '—' }}</span>
+          </div>
+          {% if b.return_time %}
+          <div class="meta-item">
+            <span class="meta-label">Dikembalikan</span>
+            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.return_time.strftime('%d/%m/%Y %H:%M') }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="card-footer">
+          {% if not b.return_time %}
+            {% if b.is_overdue() %}
+            <button type="button" class="btn btn-secondary btn-sm" onclick="showExtendModal('{{ b.id }}', '{{ b.tool_name|replace("'", "\\'") }}')">+ Perpanjang 2 Jam</button>
+            {% endif %}
+            <button type="button" class="btn btn-primary btn-sm" onclick="showReturnModal('{{ b.id }}', '{{ b.tool_name|replace("'", "\\'") }}')">Kembalikan</button>
+          {% else %}
+            <span style="font-size:12px;color:var(--muted);">Selesai pada {{ b.return_time.strftime('%d/%m/%Y %H:%M') }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="bulk-bar hidden" id="bulkBorrowingsBar">
+      <div class="bulk-bar-inner">
+        <div class="bulk-bar-info">
+          <span class="bulk-bar-counter" id="bulkBorrowingsCount">0</span>
+          <span>peminjaman dipilih</span>
+        </div>
+        <div class="bulk-bar-actions">
+          <button type="submit" name="_action" value="return" class="bulk-bar-btn" onclick="return confirm('Kembalikan semua peminjaman yang dipilih?')">Kembalikan Semua</button>
+          <button type="submit" name="_action" value="extend" class="bulk-bar-btn">Perpanjang Semua +2 Jam</button>
+          <button type="button" class="bulk-bar-btn cancel" onclick="clearBulkSelection('bulkBorrowingsForm', 'bulkBorrowingsBar')">Batal</button>
+        </div>
+      </div>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty-state reveal">
+    <div class="empty-state-icon">≡</div>
+    <div class="empty-state-text">Tidak ada data peminjaman.</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="returnModal">
+  <div class="modal-box">
+    <div class="modal-title">Kembalikan Alat?</div>
+    <div class="modal-text" id="returnModalText"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeReturnModal()">Batal</button>
+      <form id="returnConfirmForm" method="POST" action="" style="display:inline;">
+        <input type="hidden" name="condition_after" value="Baik">
+        <button type="submit" class="btn btn-primary">Ya, Kembalikan</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="extendModal">
+  <div class="modal-box">
+    <div class="modal-title">Perpanjang Peminjaman?</div>
+    <div class="modal-text" id="extendModalText"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeExtendModal()">Batal</button>
+      <form id="extendConfirmForm" method="POST" action="" style="display:inline;">
+        <input type="hidden" name="hours" value="2">
+        <button type="submit" class="btn btn-primary">Ya, Perpanjang +2 Jam</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function showReturnModal(id, toolName) {
+  document.getElementById('returnModalText').textContent = 'Kembalikan "' + toolName + '"? Status alat akan berubah menjadi tersedia.';
+  document.getElementById('returnConfirmForm').action = '/admin/return/' + id;
+  document.getElementById('returnModal').classList.add('active');
+}
+function closeReturnModal() { document.getElementById('returnModal').classList.remove('active'); }
+
+function showExtendModal(id, toolName) {
+  document.getElementById('extendModalText').textContent = 'Perpanjang "' + toolName + '" +2 jam? Batas waktu kembali akan diperpanjang.';
+  document.getElementById('extendConfirmForm').action = '/admin/extend/' + id;
+  document.getElementById('extendModal').classList.add('active');
+}
+function closeExtendModal() { document.getElementById('extendModal').classList.remove('active'); }
+
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.remove('active'); });
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(function(m) { m.classList.remove('active'); });
+});
+
+(function() {
+  const form = document.getElementById('bulkBorrowingsForm');
+  const bar = document.getElementById('bulkBorrowingsBar');
+  const counter = document.getElementById('bulkBorrowingsCount');
+  if (!form || !bar || !counter) return;
+
+  let lastCount = 0;
+  function updateBar() {
+    const checked = form.querySelectorAll('[data-bulk-checkbox]:checked');
+    const n = checked.length;
+    counter.textContent = n;
+    if (n === 0 && !bar.classList.contains('hidden')) {
+      bar.classList.remove('visible');
+      setTimeout(() => bar.classList.add('hidden'), 450);
+    } else if (n > 0) {
+      bar.classList.remove('hidden');
+      void bar.offsetWidth;
+      requestAnimationFrame(() => bar.classList.add('visible'));
+    }
+    if (n !== lastCount) {
+      counter.classList.remove('bump');
+      void counter.offsetWidth;
+      counter.classList.add('bump');
+      lastCount = n;
+    }
+    form.querySelectorAll('[data-borrowing-card]').forEach(card => {
+      const cb = card.querySelector('[data-bulk-checkbox]');
+      card.classList.toggle('selected', cb && cb.checked);
+    });
+  }
+  form.querySelectorAll('[data-bulk-checkbox]').forEach(cb => cb.addEventListener('change', updateBar));
+  updateBar();
+})();
+
+function clearBulkSelection(formId, barId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  form.querySelectorAll('[data-bulk-checkbox]').forEach(cb => {
+    cb.checked = false;
+    cb.dispatchEvent(new Event('change'));
+  });
+}
+</script>
+{% endblock %}

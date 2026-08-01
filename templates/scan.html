@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}Scan QR — LabKeeper{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:32px;padding-bottom:64px;">
+
+  <header class="page-header reveal" style="margin-bottom:2rem;">
+    <span class="eyebrow-tag">Scanner</span>
+    <h1 class="page-title">Scan QR Code</h1>
+    <p class="page-subtitle">Arahkan kamera ke QR code alat, atau masukkan kode secara manual.</p>
+  </header>
+
+  <!-- Camera Scanner -->
+  <div class="bezel-card reveal reveal-delay-1" style="margin-bottom:2rem;max-width:560px;margin-left:auto;margin-right:auto;">
+    <div class="bezel-card-inner">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--line);border-radius:50%;font-size:14px;">◉</span>
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink);">Kamera QR</div>
+          <div style="font-size:12px;color:var(--muted);">Scan otomatis dari kamera</div>
+        </div>
+      </div>
+
+      <div id="qr-reader-container">
+        <video id="qr-video"></video>
+        <div id="qr-reader"></div>
+        <div id="qr-overlay">
+          <div style="position:absolute;top:-1.5px;left:-1.5px;width:18px;height:18px;border-top:2px solid var(--bg);border-left:2px solid var(--bg);"></div>
+          <div style="position:absolute;top:-1.5px;right:-1.5px;width:18px;height:18px;border-top:2px solid var(--bg);border-right:2px solid var(--bg);"></div>
+          <div style="position:absolute;bottom:-1.5px;left:-1.5px;width:18px;height:18px;border-bottom:2px solid var(--bg);border-left:2px solid var(--bg);"></div>
+          <div style="position:absolute;bottom:-1.5px;right:-1.5px;width:18px;height:18px;border-bottom:2px solid var(--bg);border-right:2px solid var(--bg);"></div>
+        </div>
+        <div id="qr-status">Memuat kamera...</div>
+      </div>
+
+      <div id="qr-reader--flash"></div>
+    </div>
+  </div>
+
+  <!-- Manual Input -->
+  <div class="bezel-card reveal reveal-delay-2" style="max-width:560px;margin-left:auto;margin-right:auto;">
+    <div class="bezel-card-inner">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--line);border-radius:50%;font-size:14px;">⌨</span>
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink);">Masukkan Kode Manual</div>
+          <div style="font-size:12px;color:var(--muted);">Ketik kode alat (misal: ARD-01)</div>
+        </div>
+      </div>
+
+      <form id="manualForm" onsubmit="return handleManualSubmit(event)">
+        <div style="display:flex;gap:12px;">
+          <input type="text" id="manualCode" placeholder="ARD-01" style="flex:1;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
+          <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Cari</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Result -->
+  {% if tool %}
+  <div class="bezel-card reveal" style="margin-top:1.5rem;max-width:560px;margin-left:auto;margin-right:auto;">
+    <div class="bezel-card-inner" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">{{ tool.code }}</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--ink);margin-top:4px;">{{ tool.name }}</div>
+      </div>
+      <a href="/tool/{{ tool.code }}" class="btn btn-secondary btn-sm">Lihat Detail →</a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<script>
+function handleManualSubmit(e) {
+  e.preventDefault();
+  const code = document.getElementById('manualCode').value.trim().toUpperCase();
+  if (code) window.location.href = '/tool/' + code;
+  return false;
+}
+
+let scanner = null;
+let isScanning = false;
+let videoStream = null;
+let animFrameId = null;
+
+async function startScanner() {
+  const videoElement = document.getElementById('qr-video');
+  const statusDiv = document.getElementById('qr-status');
+  const flashDiv = document.getElementById('qr-reader--flash');
+  if (!videoElement) return;
+
+  if (isScanning) return;
+
+  try {
+    stopCamera();
+    if (statusDiv) statusDiv.textContent = 'Membuka kamera...';
+
+    const constraints = { video: { facingMode: { ideal: 'environment' } } };
+    videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+    videoElement.srcObject = videoStream;
+    videoElement.setAttribute('playsinline', true); // Diperlukan untuk iOS Safari
+    await videoElement.play();
+
+    isScanning = true;
+    if (statusDiv) statusDiv.textContent = 'Kamera aktif — arahkan ke QR code';
+    if (flashDiv) flashDiv.textContent = '';
+
+    // Engine 1: Instant 60fps Canvas scanning with jsQR
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    function tick() {
+      if (!isScanning) return;
+      if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        if (typeof jsQR !== 'undefined') {
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert',
+          });
+          if (code && code.data) {
+            handleScanResult(code.data, statusDiv, flashDiv);
+            return;
+          }
+        }
+      }
+      animFrameId = requestAnimationFrame(tick);
+    }
+    tick();
+
+    // Engine 2: ZXing fallback decoder
+    if (typeof ZXing !== 'undefined') {
+      try {
+        if (!scanner) scanner = new ZXing.BrowserQRCodeReader();
+        scanner.decodeFromVideoElement(videoElement, (result, err) => {
+          if (result && isScanning) {
+            handleScanResult(result.text, statusDiv, flashDiv);
+          }
+        });
+      } catch (e) {
+        console.log('ZXing fallback skipped:', e);
+      }
+    }
+
+  } catch (err) {
+    console.error('Scanner error:', err);
+    isScanning = false;
+    if (statusDiv) statusDiv.textContent = '✕ Gagal membuka kamera';
+    if (flashDiv) {
+      flashDiv.textContent = 'Error: ' + err.message + '. Pastikan izin kamera aktif & menggunakan HTTPS jika dari HP lain.';
+      flashDiv.style.color = 'var(--ink)';
+    }
+  }
+}
+
+function handleScanResult(codeText, statusDiv, flashDiv) {
+  if (!isScanning) return;
+
+  const rawText = codeText.trim();
+  const urlMatch = rawText.match(/\/tool\/([A-Za-z0-9_-]+)/i);
+  let cleanCode = urlMatch ? urlMatch[1] : rawText;
+
+  // Deteksi apakah ini URL luar (misal https://google.com) yang bukan URL LabKeeper
+  const isForeignUrl = /^https?:\/\//i.test(rawText) && !urlMatch;
+  // Deteksi jika format kode tidak wajar (terlalu panjang atau ada spasi)
+  const isInvalidFormat = isForeignUrl || rawText.length > 50 || /\s/.test(cleanCode);
+
+  if (isInvalidFormat) {
+    isScanning = false;
+    if (statusDiv) statusDiv.textContent = '✕ QR Code Tidak Dikenal';
+    if (flashDiv) {
+      flashDiv.textContent = 'QR Code ini bukan milik alat LabKeeper.';
+      flashDiv.style.color = 'var(--ink)';
+    }
+
+    // Beri jeda 2 detik untuk memberi tahu pengguna, lalu otomatis lanjut scan lagi
+    setTimeout(() => {
+      if (statusDiv) statusDiv.textContent = 'Kamera aktif — arahkan ke QR code';
+      if (flashDiv) flashDiv.textContent = '';
+      isScanning = true;
+    }, 2000);
+    return;
+  }
+
+  isScanning = false;
+  stopScanner();
+
+  if (statusDiv) statusDiv.textContent = '✓ QR Terdeteksi! Mengalihkan...';
+  if (flashDiv) {
+    flashDiv.textContent = 'Berhasil scan: ' + cleanCode.toUpperCase();
+    flashDiv.style.color = 'var(--ink)';
+  }
+
+  setTimeout(() => {
+    window.location.href = '/tool/' + cleanCode.toUpperCase();
+  }, 400);
+}
+
+function stopCamera() {
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+  }
+  if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+  const videoElement = document.getElementById('qr-video');
+  if (videoElement) videoElement.srcObject = null;
+}
+
+function stopScanner() {
+  isScanning = false;
+  if (scanner) {
+    try { scanner.reset(); } catch (e) {}
+  }
+  stopCamera();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(startScanner, 300);
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !isScanning) setTimeout(startScanner, 300);
+});
+</script>
+
+{% endblock %}

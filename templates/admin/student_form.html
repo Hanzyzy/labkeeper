@@ -1,0 +1,212 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if student %}Edit Siswa — Admin LabKeeper{% else %}Tambah Siswa — Admin LabKeeper{% endif %}{% endblock %}
+{% block head %}
+<style>
+  /* ── Student Form Styles ─────────────────────────────── */
+
+  .form-layout {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .form-card {
+    position: relative;
+    border-radius: 1.5rem;
+    padding: 1.5px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.06), transparent 40%, transparent 60%, rgba(0, 0, 0, 0.02));
+  }
+
+  .form-card-inner {
+    background: #ffffff;
+    border-radius: calc(1.5rem - 1.5px);
+    padding: 2rem 2.25rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .form-field {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-field:last-of-type {
+    margin-bottom: 2rem;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #5a5a5a;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    transition: color 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .form-field:focus-within .form-label {
+    color: #1e1e1e;
+  }
+
+  .form-input,
+  .form-textarea {
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: #1e1e1e;
+    background: #f9fafb;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 1.25rem;
+    outline: none;
+    transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .form-input:hover,
+  .form-textarea:hover {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.18);
+  }
+
+  .form-input:focus,
+  .form-textarea:focus {
+    border-color: #000000;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .form-input::placeholder {
+    color: #9ca3af;
+  }
+
+  .form-helper {
+    display: block;
+    font-size: 0.6875rem;
+    color: #8a8a8a;
+    margin-top: 0.375rem;
+    line-height: 1.5;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .btn-form {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+    white-space: nowrap;
+  }
+
+  .btn-form:active {
+    transform: scale(0.97);
+  }
+
+  .btn-form-secondary {
+    background: #ffffff;
+    color: #5a5a5a;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-form-secondary:hover {
+    background: #f3f4f6;
+    color: #1e1e1e;
+    border-color: rgba(0, 0, 0, 0.18);
+  }
+
+  .btn-form-primary {
+    background: #000000;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-form-primary:hover {
+    background: #222222;
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    transform: translateY(-1px);
+  }
+
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="form-layout reveal">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <span class="eyebrow-tag">Manajemen</span>
+      <h1 style="font-size:clamp(1.5rem,3vw,2rem);font-weight:800;letter-spacing:-0.03em;line-height:1.2;margin-top:0.5rem;">
+        {% if student %}Edit Siswa{% else %}Tambah Siswa{% endif %}
+      </h1>
+    </div>
+    <a href="/admin/students" class="btn-form btn-form-secondary" style="padding:0.5rem 1rem;font-size:0.75rem;">← Kembali</a>
+  </div>
+
+  <!-- Form Card -->
+  <form method="POST" action="/admin/students/action" class="reveal reveal-delay-1">
+    {% if student %}
+    <input type="hidden" name="_action" value="update">
+    <input type="hidden" name="old_nis" value="{{ student.nis }}">
+    {% else %}
+    <input type="hidden" name="_action" value="add">
+    {% endif %}
+
+    <div class="form-card">
+      <div class="form-card-inner">
+
+        <!-- NIS -->
+        <div class="form-field">
+          <label for="nis" class="form-label">NIS *</label>
+          <input type="text" id="nis" name="nis" class="form-input" placeholder="Masukkan NIS" value="{{ student.nis if student else '' }}" {% if not student %}required{% endif %}>
+        </div>
+
+        <!-- Name -->
+        <div class="form-field">
+          <label for="name" class="form-label">Nama *</label>
+          <input type="text" id="name" name="name" class="form-input" placeholder="Masukkan nama lengkap" value="{{ student.name if student else '' }}" required>
+        </div>
+
+        <!-- Class -->
+        <div class="form-field">
+          <label for="class" class="form-label">Kelas *</label>
+          <input type="text" id="class" name="class" class="form-input" placeholder="Contoh: XII RPL 1" value="{{ student.class_name if student else '' }}" required>
+        </div>
+
+        <!-- Password -->
+        <div class="form-field">
+          <label for="password" class="form-label">Password *</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="Minimal 6 karakter" minlength="6" {% if not student %}required{% endif %}>
+          <small class="form-helper">{% if student %}Kosongkan jika tidak ingin mengubah password{% else %}Password untuk login siswa{% endif %}</small>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <a href="/admin/students" class="btn-form btn-form-secondary">Batal</a>
+          <button type="submit" class="btn-form btn-form-primary">
+            {% if student %}Simpan Perubahan{% else %}Tambah Siswa{% endif %}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </form>
+
+</div>
+
+{% endblock %}

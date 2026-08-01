@@ -1,0 +1,167 @@
+{% extends "admin_base.html" %}
+{% block title %}QR Labels — Admin LabKeeper{% endblock %}
+{% block content %}
+
+<div class="admin-content">
+
+  <!-- Header -->
+  <div class="page-header no-print" style="margin-bottom:1.5rem;display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:1.5rem;">
+    <div>
+      <span class="eyebrow-tag">Cetak Label</span>
+      <h1 class="page-title" style="margin-top:0.375rem;margin-bottom:0;">Cetak & Label QR Code</h1>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="/admin/generate-all-qr" class="btn btn-secondary btn-sm">🔄 Refresh QR</a>
+      <button type="button" onclick="printAllQR()" class="btn btn-secondary" style="font-weight:700;font-size:13px;padding:8px 16px;">
+        🖨️ Cetak Semua QR
+      </button>
+    </div>
+  </div>
+
+  <!-- Top Action Control Bar -->
+  {% if tools %}
+  <div class="no-print" style="margin-bottom:1.5rem;width:100%;background:var(--paper);border:1px solid var(--line);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      <button type="button" onclick="selectAllQR(true)" class="btn btn-secondary btn-sm" style="font-weight:700;">
+        ☑ Pilih Semua Alat
+      </button>
+      <button type="button" onclick="selectAllQR(false)" class="btn btn-secondary btn-sm">
+        ☐ Batal Semua Pilihan
+      </button>
+      <span style="font-size:0.875rem;color:var(--ink-2);margin-left:0.5rem;">
+        Terpilih: <strong id="selectedCount" style="color:var(--ink);font-size:1.1rem;font-weight:800;">0</strong> dari {{ tools|length }} alat
+      </span>
+    </div>
+    
+    <div>
+      <button type="button" onclick="printSelectedQR()" id="btnPrintSelected" class="btn btn-primary" style="padding:8px 20px;font-weight:700;opacity:0.6;pointer-events:none;">
+        🖨️ Cetak QR Terpilih (<span id="btnPrintCount">0</span>)
+      </button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- QR Grid -->
+  {% if tools %}
+  <div class="bento-grid" id="qrLabelGrid" style="grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));width:100%;gap:16px;">
+    {% for tool in tools %}
+    <div class="qr-label" id="qr-card-{{ tool.code }}" data-tool-code="{{ tool.code }}">
+      <div class="bezel-card" style="height:100%;border:1px solid var(--line);">
+        <div class="bezel-card-inner" style="padding:1rem;display:flex;flex-direction:column;align-items:center;text-align:center;gap:0.5rem;">
+          
+          <!-- Selection Pill -->
+          <label class="qr-select-pill no-print" for="cb-{{ tool.code }}" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg);border:1px solid var(--line);padding:6px 12px;border-radius:6px;width:100%;cursor:pointer;user-select:none;transition:all 0.2s ease;">
+            <input type="checkbox" class="qr-checkbox" id="cb-{{ tool.code }}" onchange="updatePrintSelection()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ink);">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--ink-2);" id="label-text-{{ tool.code }}">Pilih Cetak</span>
+          </label>
+
+          <div style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);font-weight:600;margin-top:2px;">{{ tool.code }}</div>
+          
+          {% if tool.qr_url %}
+            <img src="{{ tool.qr_url }}" alt="QR {{ tool.code }}" style="width:140px;height:auto;background:white;padding:4px;border-radius:4px;border:1px solid var(--line);" class="qr-code-img">
+          {% else %}
+            <div style="width:140px;height:140px;background:var(--bg);border:2px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:2rem;opacity:0.3;">?</div>
+          {% endif %}
+          
+          <div style="font-weight:700;font-size:0.875rem;line-height:1.3;color:var(--ink);">{{ tool.name }}</div>
+          
+          <div class="no-print" style="display:flex;gap:0.375rem;margin-top:auto;width:100%;">
+            {% if tool.qr_url %}
+              <a href="{{ tool.qr_url }}" download="QR_{{ tool.code }}.png" class="btn btn-sm btn-secondary" style="width:100%;font-size:0.6875rem;justify-content:center;padding:5px 8px;">📥 Unduh PNG</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">📱</div>
+    <div class="empty-state-text">Belum ada alat untuk di-generate QR-nya.</div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let modePrintAll = false;
+
+function updatePrintSelection() {
+  const checkboxes = document.querySelectorAll('.qr-checkbox');
+  let selected = 0;
+  checkboxes.forEach(cb => {
+    const card = cb.closest('.qr-label');
+    const pill = card.querySelector('.qr-select-pill');
+    const textSpan = card.querySelector('#label-text-' + cb.id.replace('cb-', ''));
+
+    if (cb.checked) {
+      selected++;
+      card.classList.remove('print-hide');
+      card.style.display = 'block';
+      if (pill) {
+        pill.style.borderColor = 'var(--ink)';
+        pill.style.background = 'var(--paper)';
+      }
+      if (textSpan) {
+        textSpan.textContent = '✓ Terpilih';
+        textSpan.style.color = 'var(--ink)';
+      }
+    } else {
+      card.classList.add('print-hide');
+      if (pill) {
+        pill.style.borderColor = 'var(--line)';
+        pill.style.background = 'var(--bg)';
+      }
+      if (textSpan) {
+        textSpan.textContent = 'Pilih Cetak';
+        textSpan.style.color = 'var(--ink-2)';
+      }
+    }
+  });
+
+  const countEl = document.getElementById('selectedCount');
+  const btnPrintCount = document.getElementById('btnPrintCount');
+  const btnPrintSelected = document.getElementById('btnPrintSelected');
+
+  if (countEl) countEl.textContent = selected;
+  if (btnPrintCount) btnPrintCount.textContent = selected;
+
+  if (btnPrintSelected) {
+    if (selected > 0) {
+      btnPrintSelected.style.opacity = '1';
+      btnPrintSelected.style.pointerEvents = 'auto';
+    } else {
+      btnPrintSelected.style.opacity = '0.6';
+      btnPrintSelected.style.pointerEvents = 'none';
+    }
+  }
+}
+
+function selectAllQR(select) {
+  document.querySelectorAll('.qr-checkbox').forEach(cb => {
+    cb.checked = select;
+  });
+  updatePrintSelection();
+}
+
+function printSelectedQR() {
+  modePrintAll = false;
+  updatePrintSelection();
+  window.print();
+}
+
+function printAllQR() {
+  modePrintAll = true;
+  document.querySelectorAll('.qr-label').forEach(card => card.classList.remove('print-hide'));
+  window.print();
+  updatePrintSelection();
+}
+
+document.addEventListener('DOMContentLoaded', updatePrintSelection);
+</script>
+{% endblock %}

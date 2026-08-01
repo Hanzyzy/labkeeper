@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Siswa — LabKeeper{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:32px;padding-bottom:64px;">
+
+  <header class="page-header reveal" style="margin-bottom:2rem;">
+    <span class="eyebrow-tag">Siswa</span>
+    <h1 class="page-title">Halo, {{ current_student.name.split()[0] }} <span class="highlight">.</span></h1>
+    <p class="page-subtitle">Kelas {{ current_student.class_name }} &middot; NIS {{ current_student.nis }}</p>
+  </header>
+
+  <!-- Active Borrowing (if any) -->
+  {% if active_borrowing %}
+  <div class="bezel-card reveal reveal-delay-1" style="margin-bottom:1.5rem;border-color:var(--ink);">
+    <div class="bezel-card-inner">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+        <span class="badge badge-overdue">
+          <span class="badge-dot"></span> Sedang Dipinjam
+        </span>
+        <span class="form-label" style="margin:0;">Aktif Sekarang</span>
+      </div>
+      <h3 style="font-family:var(--font-display);font-weight:700;font-size:1.25rem;margin:0 0 0.5rem;">{{ active_borrowing.tool_name }}</h3>
+      <p style="font-size:0.875rem;color:var(--ink-2);">
+        Kode: <code style="font-family:var(--font-mono);background:var(--bg);border:1px solid var(--line);padding:2px 6px;">{{ active_borrowing.tool_code }}</code>
+        &middot; Dipinjam: {{ active_borrowing.borrow_date.strftime('%d/%m/%Y %H:%M') }}
+        {% if active_borrowing.is_overdue() %}
+          <span class="badge badge-overdue" style="margin-left:0.5rem;">
+            <span class="badge-dot"></span> Overdue
+          </span>
+        {% endif %}
+      </p>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
+        <a href="/tool/{{ active_borrowing.tool_code }}" class="btn btn-secondary btn-sm">Detail Alat</a>
+        <a href="/history" class="btn btn-secondary btn-sm">Lihat Riwayat</a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state reveal" style="text-align:center;padding:4rem 2rem;">
+    <div class="empty-state-icon" style="font-size:3rem;margin-bottom:1rem;">◇</div>
+    <div class="empty-state-text" style="font-size:1.125rem;color:var(--ink-2);">Tidak ada peminjaman aktif.</div>
+    <p style="color:var(--muted);margin-top:0.5rem;">Scan QR code alat untuk memulai peminjaman.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

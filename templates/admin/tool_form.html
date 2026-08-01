@@ -1,0 +1,293 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if tool %}Edit Alat — Admin LabKeeper{% else %}Tambah Alat — Admin LabKeeper{% endif %}{% endblock %}
+{% block head %}
+<style>
+  /* ── Admin Form Design System ─────────────────────────────── */
+
+  .form-layout {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Double-bezel card for form container */
+  .form-card {
+    position: relative;
+    border-radius: 1.5rem;
+    padding: 1.5px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.06), transparent 40%, transparent 60%, rgba(0, 0, 0, 0.02));
+  }
+
+  .form-card-inner {
+    background: #ffffff;
+    border-radius: calc(1.5rem - 1.5px);
+    padding: 2rem 2.25rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Form group spacing */
+  .form-field {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-field:last-of-type {
+    margin-bottom: 2rem;
+  }
+
+  /* Labels */
+  .form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #5a5a5a;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    transition: color 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .form-field:focus-within .form-label {
+    color: #1e1e1e;
+  }
+
+  /* Input wrapper for custom select arrows */
+  .input-wrapper {
+    position: relative;
+  }
+
+  .input-wrapper .select-arrow {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #8a8a8a;
+    font-size: 0.75rem;
+  }
+
+  /* Base input/select/textarea styles */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: #1e1e1e;
+    background: #f9fafb;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 1.25rem;
+    outline: none;
+    transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .form-input::placeholder,
+  .form-textarea::placeholder {
+    color: #9ca3af;
+  }
+
+  .form-input:hover,
+  .form-select:hover,
+  .form-textarea:hover {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.18);
+  }
+
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
+    border-color: #000000;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 90px;
+  }
+
+  .form-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 2.75rem;
+  }
+
+  /* Helper text */
+  .form-helper {
+    display: block;
+    font-size: 0.6875rem;
+    color: #8a8a8a;
+    margin-top: 0.375rem;
+    line-height: 1.5;
+  }
+
+  /* Action row */
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  /* Buttons */
+  .btn-form {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+    white-space: nowrap;
+  }
+
+  .btn-form:active {
+    transform: scale(0.97);
+  }
+
+  .btn-form-secondary {
+    background: #ffffff;
+    color: #5a5a5a;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-form-secondary:hover {
+    background: #f3f4f6;
+    color: #1e1e1e;
+    border-color: rgba(0, 0, 0, 0.18);
+  }
+
+  .btn-form-primary {
+    background: #000000;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-form-primary:hover {
+    background: #222222;
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    transform: translateY(-1px);
+  }
+
+  /* Select option styling */
+  .form-select option {
+    background: #ffffff;
+    color: #1e1e1e;
+  }
+
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="form-layout reveal">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <span class="eyebrow-tag">Manajemen</span>
+      <h1 style="font-size:clamp(1.5rem,3vw,2rem);font-weight:800;letter-spacing:-0.03em;line-height:1.2;margin-top:0.5rem;">
+        {% if tool %}Edit Alat{% else %}Tambah Alat{% endif %}
+      </h1>
+    </div>
+    <a href="/admin/tools" class="btn-form btn-form-secondary" style="padding:0.5rem 1rem;font-size:0.75rem;">← Kembali</a>
+  </div>
+
+  <!-- Form Card -->
+  <form method="POST" action="/admin/tools/action" class="reveal reveal-delay-1">
+    {% if tool %}
+    <input type="hidden" name="_action" value="update">
+    <input type="hidden" name="old_code" value="{{ tool.code }}">
+    {% else %}
+    <input type="hidden" name="_action" value="add">
+    {% endif %}
+
+    <div class="form-card">
+      <div class="form-card-inner">
+
+        <!-- Code -->
+        <div class="form-field">
+          <label for="code" class="form-label">Kode Alat *</label>
+          <input type="text" id="code" name="code" class="form-input" placeholder="Contoh: ARD-03" value="{{ tool.code if tool else '' }}" {% if not tool %}required{% endif %}>
+          <small class="form-helper">Huruf besar, unik untuk setiap alat</small>
+        </div>
+
+        <!-- Name -->
+        <div class="form-field">
+          <label for="name" class="form-label">Nama Alat *</label>
+          <input type="text" id="name" name="name" class="form-input" placeholder="Contoh: Arduino Uno R3" value="{{ tool.name if tool else '' }}" required>
+        </div>
+
+        <!-- Category -->
+        <div class="form-field">
+          <label for="category" class="form-label">Kategori</label>
+          <div class="input-wrapper">
+            <select id="category" name="category" class="form-select">
+              <option value="">— Pilih Kategori —</option>
+              <option value="Mikrokontroler" {% if tool and tool.category == 'Mikrokontroler' %}selected{% endif %}>Mikrokontroler</option>
+              <option value="Sensor" {% if tool and tool.category == 'Sensor' %}selected{% endif %}>Sensor</option>
+              <option value="Actuator" {% if tool and tool.category == 'Actuator' %}selected{% endif %}>Actuator</option>
+              <option value="Komponen Elektronik" {% if tool and tool.category == 'Komponen Elektronik' %}selected{% endif %}>Komponen Elektronik</option>
+              <option value="Perangkat Lunak" {% if tool and tool.category == 'Perangkat Lunak' %}selected{% endif %}>Perangkat Lunak</option>
+              <option value="Lainnya" {% if tool and tool.category == 'Lainnya' %}selected{% endif %}>Lainnya</option>
+            </select>
+            <span class="select-arrow">▾</span>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="form-field">
+          <label for="location" class="form-label">Lokasi Rak</label>
+          <input type="text" id="location" name="location" class="form-input" placeholder="Contoh: Rak A1" value="{{ tool.lab_location if tool else '' }}">
+        </div>
+
+        <!-- Condition -->
+        <div class="form-field">
+          <label for="condition" class="form-label">Kondisi</label>
+          <div class="input-wrapper">
+            <select id="condition" name="condition" class="form-select">
+              <option value="Baik" {% if tool and tool.condition == 'Baik' %}selected{% endif %}>Baik</option>
+              <option value="Rusak Ringan" {% if tool and tool.condition == 'Rusak Ringan' %}selected{% endif %}>Rusak Ringan</option>
+              <option value="Rusak Berat" {% if tool and tool.condition == 'Rusak Berat' %}selected{% endif %}>Rusak Berat</option>
+              <option value="Perlu Perbaikan" {% if tool and tool.condition == 'Perlu Perbaikan' %}selected{% endif %}>Perlu Perbaikan</option>
+            </select>
+            <span class="select-arrow">▾</span>
+          </div>
+        </div>
+
+        <!-- Icon -->
+        <div class="form-field">
+          <label for="icon" class="form-label">Ikon</label>
+          <input type="text" id="icon" name="icon" class="form-input" placeholder="📦" value="{{ tool.icon or '📦' if tool else '📦' }}">
+          <small class="form-helper">Emoji yang mewakili alat ini</small>
+        </div>
+
+        <!-- Description -->
+        <div class="form-field">
+          <label for="description" class="form-label">Deskripsi</label>
+          <textarea id="description" name="description" class="form-textarea" placeholder="Deskripsi singkat tentang alat..." rows="3">{{ tool.description if tool else '' }}</textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <a href="/admin/tools" class="btn-form btn-form-secondary">Batal</a>
+          <button type="submit" class="btn-form btn-form-primary">
+            {% if tool %}Simpan Perubahan{% else %}Tambah Alat{% endif %}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </form>
+
+</div>
+
+{% endblock %}

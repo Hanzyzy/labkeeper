@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}LabKeeper — Peminjaman Alat Lab{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- Metrics Strip -->
+  <section class="metrics-strip reveal">
+    <div class="metric-item">
+      <span class="metric-label">Total Alat</span>
+      <span class="metric-value">{{ total_alat }}</span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Tersedia</span>
+      <span class="metric-value available">{{ tersedia }}</span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Dipinjam</span>
+      <span class="metric-value borrowed">{{ dipinjam }}</span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Overdue</span>
+      <span class="metric-value overdue">{{ telat }}</span>
+    </div>
+  </section>
+
+  <!-- Hero (editorial with side image) -->
+  <section class="hero-section reveal reveal-delay-1">
+    <div class="hero-container">
+      <div class="hero-content">
+        <p class="hero-eyebrow">Sistem Peminjaman Alat Lab</p>
+        <h1 class="hero-title">
+          Pinjam <span class="highlight">Alat Lab</span><br/>
+          Lebih Mudah
+        </h1>
+        <p class="hero-subtitle">
+          Scan QR code pada alat, lihat detail, dan pinjam langsung dari HP kamu.
+          Sistem peminjaman digital untuk lab SMK Telkom.
+        </p>
+        <div class="hero-actions">
+          <a href="/scan" class="btn btn-primary">Scan QR &nbsp;→</a>
+        </div>
+      </div>
+      <div class="hero-image-wrapper">
+        <img src="{{ url_for('static', filename='images/gambar_samping.jpeg') }}" alt="Ilustrasi LabKeeper" class="hero-image">
+      </div>
+    </div>
+  </section>
+
+  <!-- Catalog -->
+  <section class="catalog-section">
+    <header class="catalog-header reveal">
+      <div>
+        <span class="eyebrow-tag">Katalog</span>
+        <h2 class="page-title">Semua Alat</h2>
+      </div>
+      {% if categories %}
+      <div class="category-pills" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="category-pill active" onclick="filterCategory('all', this)">Semua</button>
+        {% for cat in categories %}
+          <button type="button" class="category-pill" onclick="filterCategory('{{ cat }}', this)">{{ cat }}</button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </header>
+
+    {% if tools %}
+      <div class="tools-grid">
+        {% for tool in tools %}
+          <div class="tool-card-wrapper reveal" data-category="{{ tool.category }}" style="transition-delay: {{ loop.index0 * 0.04 }}s;">
+            <a href="/tool/{{ tool.code }}" class="tool-card">
+              <div class="tool-header">
+                <div class="tool-icon">{{ tool.icon or '◇' }}</div>
+                <div class="tool-code">{{ tool.code }}</div>
+              </div>
+              <div class="tool-body">
+                <div class="tool-name">{{ tool.name }}</div>
+                <div class="tool-meta">{{ tool.category }} &middot; {{ tool.lab_location }}</div>
+                <div style="margin-top:auto;padding-top:12px;">
+                  <span class="tool-status {% if tool.is_available() %}available{% else %}borrowed{% endif %}">
+                    {% if tool.is_available() %}Tersedia{% else %}Dipinjam{% endif %}
+                  </span>
+                </div>
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state reveal">
+        <div class="empty-state-icon">◇</div>
+        <div class="empty-state-text">Belum ada alat terdaftar.</div>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterCategory(category, btnElement) {
+  document.querySelectorAll('.category-pill').forEach(btn => btn.classList.remove('active'));
+  btnElement.classList.add('active');
+
+  const cards = document.querySelectorAll('.tool-card-wrapper');
+  cards.forEach(card => {
+    const cardCat = card.getAttribute('data-category');
+    if (category === 'all' || cardCat === category) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

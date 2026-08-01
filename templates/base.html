@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}LabKeeper{% endblock %}</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/new_style.css') }}?v={{ timestamp }}&bust={{ random_int }}">
+  {% block head %}{% endblock %}
+  <meta name="description" content="LabKeeper – Sistem peminjaman alat lab sekolah berbasis QR Code">
+</head>
+<body>
+
+  <!-- Sticky Nav (editorial) -->
+  <nav class="nav-bar" id="mainNav">
+    <div class="nav-bar-right">
+      <a href="/" class="nav-bar-link nav-bar-logo-link" title="Beranda">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Scan QR">
+      </a>
+      <a href="/scan" class="nav-bar-link nav-bar-btn nav-bar-scan-btn {% if request.endpoint == 'scan' %}active{% endif %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="qr-icon">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          <path d="M7 7h.01"></path>
+          <path d="M18 7h.01"></path>
+          <path d="M7 18h.01"></path>
+          <rect x="14" y="14" width="3" height="3" rx="0.5"></rect>
+          <path d="M20 14v3"></path>
+          <path d="M14 20h3"></path>
+          <path d="M20 20h.01"></path>
+        </svg>
+        <span>Scan</span>
+      </a>
+      {% if current_admin %}
+          <a href="/admin/dashboard" class="nav-bar-link nav-bar-btn">Admin Panel</a>
+          <a href="/admin/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
+      {% elif current_student %}
+          <a href="/student/dashboard" class="nav-bar-link nav-bar-btn">Dashboard</a>
+          <a href="/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
+      {% else %}
+          <a href="/login" class="nav-bar-link nav-bar-btn">Login</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <article class="main-content">
+    <main>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+              <div class="flash-message flash-{{ category }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </article>
+
+  <!-- Footer -->
+  <footer>
+    <p>LabKeeper &mdash; create by hanzz</p>
+  </footer>
+
+  <script>
+    // Navbar hairline on scroll
+    const nav = document.getElementById('mainNav');
+    function onScroll() {
+      if (!nav) return;
+      nav.classList.toggle('scrolled', window.scrollY > 8);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Reveal on scroll
+    (function() {
+      if (!('IntersectionObserver' in window)) {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('is-visible'));
+        return;
+      }
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('is-visible'));
+        return;
+      }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    })();
+
+    // Auto-dismiss flash messages after 1.2 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+      const flashMessages = document.querySelectorAll('.flash-message');
+      if (flashMessages.length > 0) {
+        setTimeout(function() {
+          flashMessages.forEach(function(msg) {
+            msg.classList.add('fade-out');
+            setTimeout(function() {
+              if (msg.parentNode) msg.parentNode.removeChild(msg);
+            }, 400);
+          });
+        }, 1200);
+      }
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

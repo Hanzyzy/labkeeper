@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Riwayat — LabKeeper{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:32px;padding-bottom:64px;">
+
+  <header class="page-header reveal" style="margin-bottom:2rem;">
+    <span class="eyebrow-tag">Siswa</span>
+    <h1 class="page-title">Riwayat Peminjaman</h1>
+    <p class="page-subtitle">Semua aktivitas peminjaman Anda di LabKeeper</p>
+  </header>
+
+  {% if borrowings %}
+  <div class="bezel-card reveal reveal-delay-1" style="overflow:hidden;">
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Alat</th>
+            <th>Tanggal Pinjam</th>
+            <th>Tenggat</th>
+            <th>Status</th>
+            <th style="text-align:right;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in borrowings %}
+          <tr>
+            <td>
+              <div style="font-weight:600;">{{ b.tool_name }}</div>
+              <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);">{{ b.tool_code }}</div>
+            </td>
+            <td style="font-family:var(--font-mono);font-size:13px;">{{ b.borrow_date.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td style="font-family:var(--font-mono);font-size:13px;">{{ b.due_date.strftime('%d/%m/%Y %H:%M') if b.due_date else '—' }}</td>
+            <td>
+              {% if b.status == 'returned' %}
+                <span class="badge badge-available"><span class="badge-dot"></span> Dikembalikan</span>
+              {% elif b.status == 'active' %}
+                {% if b.is_overdue() %}
+                  <span class="badge badge-overdue"><span class="badge-dot"></span> Overdue</span>
+                {% else %}
+                  <span class="badge badge-borrowed"><span class="badge-dot"></span> Aktif</span>
+                {% endif %}
+              {% else %}
+                <span class="badge">{{ b.status }}</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">
+              {% if b.status == 'active' %}
+                <form action="/kembalikan/{{ b.tool_code }}" method="post" style="display:inline-flex;">
+                  <button type="submit" class="btn btn-secondary btn-sm">Kembalikan</button>
+                </form>
+              {% else %}
+                <span style="color:var(--muted);font-size:12px;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state reveal">
+    <div class="empty-state-icon">◇</div>
+    <div class="empty-state-text">Belum ada riwayat peminjaman.</div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

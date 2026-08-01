@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.name }} — LabKeeper{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:32px;padding-bottom:64px;max-width:760px;">
+
+  <a href="/" class="login-back reveal" style="margin-bottom:1.5rem;display:inline-block;">← Kembali ke beranda</a>
+
+  <header class="page-header reveal" style="margin-bottom:2rem;">
+    <span class="eyebrow-tag">{{ tool.category }}</span>
+    <h1 class="page-title" style="display:flex;align-items:center;gap:0.75rem;margin-top:8px;">
+      <span style="font-size:1.5em;line-height:1;">{{ tool.icon or '◇' }}</span>
+      {{ tool.name }}
+    </h1>
+    <p class="page-subtitle" style="margin-top:8px;">Kode: <code style="font-family:var(--font-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:2px 8px;font-size:0.875rem;">{{ tool.code }}</code></p>
+  </header>
+
+  <!-- Tool Detail Card (window chrome) -->
+  <div class="window-chrome reveal reveal-delay-1">
+    <div class="window-bar">
+      <div class="window-dots">
+        <div class="window-dot"></div>
+        <div class="window-dot"></div>
+        <div class="window-dot"></div>
+      </div>
+      <div class="window-url">{{ tool.code }} — Detail Alat</div>
+    </div>
+    <div class="window-body">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:32px;align-items:start;">
+        <!-- Info Column -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:0.875rem 0;border-bottom:1px solid var(--line);">
+            <span class="form-label" style="margin:0;">Lokasi</span>
+            <span style="font-weight:600;text-align:right;">{{ tool.lab_location }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:0.875rem 0;border-bottom:1px solid var(--line);">
+            <span class="form-label" style="margin:0;">Kondisi</span>
+            <span style="font-weight:600;text-align:right;">{{ tool.condition or 'Baik' }}</span>
+          </div>
+          {% if tool.description %}
+          <div style="padding:0.875rem 0;">
+            <span class="form-label" style="display:block;margin-bottom:0.5rem;">Deskripsi</span>
+            <p style="font-size:0.9375rem;color:var(--ink-2);line-height:1.7;margin:0;">{{ tool.description }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- QR Code -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <span class="form-label" style="margin-bottom:1rem;text-align:center;">QR Code</span>
+          {% if tool.qr_url %}
+            <img src="{{ tool.qr_url }}" alt="QR Code {{ tool.code }}" class="qr-code-img" style="width:160px;height:160px;">
+          {% else %}
+            <div class="qr-code-placeholder" style="width:160px;height:160px;">
+              <div style="font-size:1.5rem;">◌</div>
+              <div style="font-size:0.75rem;">QR belum di-generate</div>
+            </div>
+          {% endif %}
+          <div style="margin-top:0.75rem;text-align:center;font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);word-break:break-all;max-width:160px;">
+            {{ base_url }}/tool/{{ tool.code }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status & Action -->
+  <div class="reveal reveal-delay-2" style="margin-top:2rem;">
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      {% if tool.is_available() %}
+        <span class="badge badge-available">
+          <span class="badge-dot"></span> Tersedia
+        </span>
+      {% else %}
+        <span class="badge badge-overdue">
+          <span class="badge-dot"></span> Dipinjam
+        </span>
+      {% endif %}
+
+      {% if tool.is_available() and current_student %}
+        <a href="/pinjam/{{ tool.code }}" class="btn btn-primary">Pinjam Sekarang →</a>
+      {% elif tool.is_available() and not current_student %}
+        <a href="/student/login?redirect=/tool/{{ tool.code }}" class="btn btn-primary">Login untuk Pinjam</a>
+      {% elif current_student and current and current.student_id == current_student.id %}
+        <form action="/kembalikan/{{ tool.code }}" method="post" style="display:inline-flex;">
+          <button type="submit" class="btn btn-secondary">Kembalikan Alat</button>
+        </form>
+      {% else %}
+        <button class="btn btn-secondary" disabled style="opacity:0.5;cursor:not-allowed;">Alat Sedang Dipinjam</button>
+      {% endif %}
+    </div>
+
+    {% if borrowing_history %}
+    <div class="bezel-card" style="margin-top:1.5rem;">
+      <div class="bezel-card-inner">
+        <h3 style="font-family:var(--font-display);font-weight:700;font-size:18px;margin:0 0 1rem;">Riwayat Peminjaman</h3>
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--line);">
+          {% for h in borrowing_history[:5] %}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;border-bottom:1px solid var(--line);font-size:0.875rem;background:var(--paper);">
+            <div>
+              <span style="font-weight:600;">{{ h.student_name }}</span>
+              <span style="color:var(--muted);margin:0 0.5rem;">·</span>
+              <span style="color:var(--ink-2);font-family:var(--font-mono);font-size:0.8125rem;">{{ h.borrow_date.strftime('%d/%m/%Y %H:%M') }}</span>
+            </div>
+            <span class="badge {% if h.status == 'returned' %}badge-available{% else %}badge-borrowed{% endif %}">
+              {% if h.status == 'returned' %}Dikembalikan{% else %}Aktif{% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<style>
+@media (max-width: 640px) {
+  .window-body > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+}
+</style>
+
+{% endblock %}

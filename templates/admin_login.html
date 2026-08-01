@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Admin — LabKeeper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app_v2.css?v=1785384288">
+  <style>
+    /* ── Admin Login Page Redesign ───────────────────────────── */
+    
+    .admin-login-page {
+      min-height: calc(100vh - 200px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+    }
+    
+    .login-brand {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    
+    .login-brand-icon {
+      font-size: 1.75rem;
+      margin-bottom: 0.75rem;
+      opacity: 0.7;
+    }
+    
+    .login-brand h1 {
+      font-size: 1.375rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.375rem;
+    }
+    
+    .login-brand p {
+      font-size: 0.8125rem;
+      color: rgba(255, 255, 255, 0.35);
+    }
+    
+    .login-form-group {
+      margin-bottom: 1.25rem;
+    }
+    
+    .login-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    
+    .login-input {
+      width: 100%;
+      padding: 0.875rem 1.125rem;
+      font-size: 0.9375rem;
+      font-family: inherit;
+      color: #fafafa;
+      background: var(--surface-2);
+      border: 1px solid var(--border-soft);
+      border-radius: 1.25rem;
+      outline: none;
+      transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    
+    .login-input:hover {
+      background: var(--surface-2);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .login-input:focus {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: rgba(59, 130, 246, 0.04);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+    }
+    
+    .login-input::placeholder {
+      color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .login-submit {
+      width: 100%;
+      padding: 0.875rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      border-radius: 9999px;
+      background: rgba(59, 130, 246, 0.85);
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+      margin-top: 0.5rem;
+    }
+    
+    .login-submit:hover {
+      background: rgba(59, 130, 246, 1);
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+      transform: translateY(-1px);
+    }
+    
+    .login-submit:active {
+      transform: scale(0.97);
+    }
+    
+    .login-back {
+      display: block;
+      text-align: center;
+      margin-top: 1.75rem;
+      font-size: 0.8125rem;
+      color: rgba(255, 255, 255, 0.3);
+      text-decoration: none;
+      transition: color 200ms ease;
+    }
+    
+    .login-back:hover {
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    /* Light mode */
+    .light-mode .login-card {
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+    
+    .light-mode .login-label {
+      color: #5a5a5a;
+    }
+    
+    .light-mode .login-input {
+      background: #f9fafb;
+      border-color: rgba(0, 0, 0, 0.1);
+      color: #1e1e1e;
+    }
+    
+    .light-mode .login-input:hover {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.18);
+    }
+    
+    .light-mode .login-input:focus {
+      border-color: #000000;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+    }
+    
+    .light-mode .login-input::placeholder {
+      color: #9ca3af;
+    }
+    
+    .light-mode .login-brand p {
+      color: #8a8a8a;
+    }
+    
+    .light-mode .login-back {
+      color: #8a8a8a;
+    }
+    
+    .light-mode .login-back:hover {
+      color: #1e1e1e;
+    }
+    
+    .light-mode .login-submit {
+      background: #000000;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    .light-mode .login-submit:hover {
+      background: #222222;
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+  </style>
+
+  <meta name="description" content="LabKeeper – Sistem peminjaman alat lab sekolah berbasis QR Code"></head>
+<body c
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>lass="light-mode">
+  <div class="mesh-bg"></div>
+
+      <script>
+    // Theme toggle — sinkron dengan halaman beranda & admin (applies to BOTH html and body)
+    function applyTheme(themeVal) {
+      const isLight = themeVal === 'light';
+      const targets = [document.documentElement, document.body];
+      targets.forEach(el => {
+        el.classList.toggle('light-mode', isLight);
+        el.classList.toggle('dark-mode', !isLight);
+      });
+    }
+
+    var theme = localStorage.getItem('theme') || 'light';
+    applyTheme(theme);
+  </script>
+
+  <div class="admin-login-page reveal">
+    <div class="bezel-card login-card">
+      <div class="bezel-card-inner" style="padding:2.5rem 2rem;">
+        
+        <div class="login-brand">
+          <div class="login-logo"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="LabKeeper"></div>
+          <h1>Admin Panel</h1>
+          <p>Masuk untuk mengelola LabKeeper</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-message flash-error">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/admin/login">
+          <div class="login-form-group">
+            <label class="login-label">Username</label>
+            <input type="text" name="username" class="login-input" placeholder="admin" required autofocus>
+          </div>
+          <div class="login-form-group">
+            <label class="login-label">Password</label>
+            <input type="password" name="password" class="login-input" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="login-submit">Masuk</button>
+        </form>
+
+        <a href="/" class="login-back">← Kembali ke beranda</a>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const flashMessages = document.querySelectorAll('.flash-message');
+      if (flashMessages.length > 0) {
+        setTimeout(function() {
+          flashMessages.forEach(function(msg) {
+            msg.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            msg.style.opacity = '0';
+            msg.style.transform = 'translateY(-12px)';
+            setTimeout(function() {
+              if (msg.parentNode) msg.parentNode.removeChild(msg);
+            }, 400);
+          });
+        }, 1200);
+      }
+    });
+  </script>
+</body>
+</html>

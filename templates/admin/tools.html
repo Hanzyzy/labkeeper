@@ -1,0 +1,110 @@
+{% extends "admin_base.html" %}
+{% block title %}Kelola Alat — Admin LabKeeper{% endblock %}
+{% block content %}
+
+<div class="admin-content">
+
+  <!-- Page Header -->
+  <div class="reveal" style="margin-bottom:1.5rem;display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:1.5rem;">
+    <div>
+      <span class="eyebrow-tag">Manajemen</span>
+      <h1 class="page-title" style="margin-top:0.375rem;margin-bottom:0;">Kelola Alat</h1>
+    </div>
+    <a href="/admin/tools?action=add" class="btn btn-primary">+ Tambah Alat</a>
+  </div>
+
+  <div class="tools-container">
+
+    <!-- Filter Bar -->
+    <div class="reveal filter-bar">
+      <form method="GET" action="/admin/tools" style="display:flex;gap:0.75rem;flex:1;flex-wrap:wrap;align-items:center;">
+        <div class="filter-search" style="flex:1;min-width:200px;">
+          <input type="text" name="search" class="form-input" placeholder="Cari alat..." value="{{ search or '' }}" style="width:100%;">
+        </div>
+        <button type="submit" class="filter-btn">Filter</button>
+      </form>
+    </div>
+
+    <!-- Tools List -->
+    {% if tools %}
+    <div class="tools-list">
+      {% for tool in tools %}
+      {% set _status_class = 'available' if tool.is_available() else ('borrowed' if tool.is_active else 'inactive') %}
+      {% set _status_label = 'Tersedia' if tool.is_available() else ('Dipinjam' if tool.is_active else 'Nonaktif') %}
+      <div class="tool-card-row reveal" style="transition-delay: {{ loop.index0 * 0.04 }}s;">
+        <div class="card-top-row">
+          <div class="card-tool-info">
+            <div class="card-icon">{{ tool.icon or '◇' }}</div>
+            <div>
+              <h3 class="card-name">{{ tool.name }}</h3>
+              <p class="card-code">Kode: {{ tool.code }}</p>
+            </div>
+          </div>
+          <div class="card-actions">
+            <a href="/tool/{{ tool.code }}" class="btn-icon" title="Lihat Detail" aria-label="Lihat Detail">◎</a>
+            <a href="/admin/tools?action=edit&code={{ tool.code }}" class="btn-icon" title="Edit" aria-label="Edit">✎</a>
+            <button onclick="generateQR('{{ tool.code }}')" class="btn-icon" title="Generate QR" aria-label="Generate QR" {% if tool.qr_url %}disabled{% endif %}>⌗</button>
+            <form action="/admin/tools/action" method="POST" style="display:inline;" onsubmit="return confirm('Yakin hapus alat ini?')">
+              <input type="hidden" name="_action" value="delete">
+              <input type="hidden" name="code" value="{{ tool.code }}">
+              <button type="submit" class="btn-icon" title="Hapus" aria-label="Hapus">×</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card-meta">
+          <div class="meta-item">
+            <span class="meta-label">Kategori</span>
+            <span>{{ tool.category or '—' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Lokasi</span>
+            <span>{{ tool.lab_location or '—' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">QR Code</span>
+            <span>{{ '✓ Generated' if tool.qr_url else '— Belum' }}</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="status-badge {{ _status_class }}">
+            <span class="badge-dot"></span> {{ _status_label }}
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="reveal" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-top:1.5rem;width:100%;">
+      {% if current_page > 1 %}
+        <a href="?page={{ current_page - 1 }}&search={{ search or '' }}" class="btn btn-sm btn-secondary">← Prev</a>
+      {% endif %}
+      {% for i in range(1, total_pages + 1) %}
+        {% if i == current_page %}
+          <span class="btn btn-sm btn-primary" style="pointer-events:none;">{{ i }}</span>
+        {% elif i <= 3 or i > total_pages - 3 or abs(i - current_page) <= 1 %}
+          <a href="?page={{ i }}&search={{ search or '' }}" class="btn btn-sm btn-secondary">{{ i }}</a>
+        {% elif i == 4 or i == total_pages - 3 %}
+          <span style="color:var(--muted);">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if current_page < total_pages %}
+        <a href="?page={{ current_page + 1 }}&search={{ search or '' }}" class="btn btn-sm btn-secondary">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state reveal">
+      <div class="empty-state-icon">◇</div>
+      <div class="empty-state-text">Belum ada alat terdaftar.</div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

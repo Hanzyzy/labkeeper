@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}LabKeeper — Peminjaman Alat Lab{% endblock %}
+
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Satoshi:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html { font-family: 'Satoshi', system-ui, sans-serif; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Metrics Header -- horizontal strip above main content -->
+    <section class="metrics-strip">
+      <div class="metric-item">
+        <span class="metric-label">Total Alat</span>
+        <span class="metric-value">{{ total_alat }}</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">Tersedia</span>
+        <span class="metric-value available">{{ tersedia }}</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">Dipinjam</span>
+        <span class="metric-value borrowed">{{ dipinjam }}</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">Overdue</span>
+        <span class="metric-value overdue">{{ telat }}</span>
+      </div>
+    </section>
+
+  <!-- Hero Section -- centered layout -->
+  <section class="hero-section hero-centered">
+    <div class="hero-content hero-content-centered">
+      <div class="hero-eyebrow">Sistem Peminjaman Alat Lab</div>
+      <h1 class="hero-title">Pinjam <span class="highlight">Alat Lab</span><br/>Lebih Mudah</h1>
+      <p class="hero-subtitle">Scan QR code pada alat, lihat detail, dan pinjam langsung dari HP kamu. Sistem peminjaman digital untuk lab SMK Telkom.</p>
+      <div class="hero-actions">
+        <a href="/scan" class="btn btn-primary reveal">Scan QR <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px;"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tools Catalog -- split into rows with asymmetrical grid instead of 3-column equal cards -->
+  <section class="catalog-section">
+    <div class="catalog-header">
+      <span class="eyebrow-tag purple">Katalog Alat</span>
+      <h2 class="page-title">Semua Alat</h2>
+    </div>
+
+    <!-- Grouped by Category -- horizontal scroll for first row, stacked for rest -->
+    {% if tools %}
+    <div class="tools-grid">
+      {% for tool in tools %}
+      <div class="tool-card-wrapper reveal" style="animation-delay: {{ loop.index * 0.05 }}s">
+        <a href="/tool/{{ tool.code }}" class="tool-card">
+          <div class="tool-header">
+            <div class="tool-icon">{{ tool.icon or '🔧' }}</div>
+            <div class="tool-code">{{ tool.code }}</div>
+            <span class="tool-status {% if tool.is_available() %}available{% else %}borrowed{% endif %}">
+              {% if tool.is_available() %}Tersedia{% else %}Dipinjam{% endif %}
+            </span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-name">{{ tool.name }}</div>
+            <div class="tool-meta">
+              {{ tool.category }} • {{ tool.lab_location }}
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-text">Belum ada alat terdaftar.</div>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Simple stagger-in animation for cards already handled via CSS animation-delay
+document.addEventListener('DOMContentLoaded', () => {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+});
+</script>
+{% endblock %}
