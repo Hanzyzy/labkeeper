@@ -313,7 +313,6 @@ def create_app() -> Flask:
                       .order_by(Borrowing.borrow_date.desc()).limit(50).all())
         return render_template("history.html", borrowings=borrowings)
 
-    # ============= ADMIN ROUTES =============
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
         if current_admin():
@@ -321,16 +320,25 @@ def create_app() -> Flask:
         nxt = request.args.get("next") or url_for("admin_dashboard")
         schools = School.query.filter_by(is_active=True).order_by(School.name).all()
         if request.method == "POST":
+            school_id = request.form.get("school_id")
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "")
-            admin = Admin.query.filter_by(username=username).first()
+            
+            if not school_id or not username or not password:
+                flash("Pilih asal sekolah, username, dan password wajib diisi.", "warning")
+                return render_template("admin/admin_login.html", schools=schools, next_url=nxt)
+
+            admin = Admin.query.filter_by(school_id=school_id, username=username).first()
+            if not admin:
+                admin = Admin.query.filter_by(username=username).first()
+
             if admin and admin.check_password(password):
                 session.permanent = True
                 session["admin_id"] = admin.id
                 session["school_id"] = admin.school_id
                 flash(f"Login berhasil. Halo, {admin.full_name or admin.username} ({admin.school_name}).", "success")
                 return redirect(request.form.get("next") or nxt)
-            flash("Username atau password salah.", "error")
+            flash("Sekolah, username, atau password salah.", "error")
         return render_template("admin/admin_login.html", schools=schools, next_url=nxt)
 
     @app.route("/admin/logout")
