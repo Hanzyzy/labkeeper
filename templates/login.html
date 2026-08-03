@@ -1,117 +1,65 @@
 {% extends "base.html" %}
-{% block title %}Login — LabKeeper{% endblock %}
+{% block title %}Login Murid — LabKeeper{% endblock %}
 {% block content %}
 
-<div class="page-container" style="padding-top:40px;padding-bottom:40px;">
+<div class="page-container" style="padding-top:40px;padding-bottom:40px;display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 120px);">
 
-  <section class="login-split reveal">
+  <div class="bezel-card reveal" style="width:100%;max-width:440px;border:1px solid var(--line);border-radius:1.5rem;box-shadow:0 12px 40px rgba(0,0,0,0.05);">
+    <div class="bezel-card-inner" style="padding:2.25rem 2rem;">
+      <a href="/" class="login-back" style="margin-bottom:1.5rem;display:inline-flex;align-items:center;gap:6px;font-size:0.875rem;color:var(--ink-2);text-decoration:none;font-weight:500;">
+        ← Kembali ke Pilihan Portal
+      </a>
 
-    <!-- LEFT: Login Form -->
-    <div class="login-form-side">
-      <div class="login-form-inner">
-        <a href="/" class="login-back">← Kembali ke beranda</a>
-
-        <div class="login-brand">
-          <h1 class="login-heading">Masuk ke <em>LabKeeper</em></h1>
-          <p class="login-subheading">Pilih peran dan masukan akun kamu</p>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:1.25rem;">
+          🎓
         </div>
+        <div>
+          <span class="eyebrow-tag" style="font-size:0.625rem;letter-spacing:0.1em;margin-bottom:2px;">AKSES SISWA</span>
+          <h1 style="font-family:var(--font-display);font-weight:800;font-size:1.375rem;margin:0;color:var(--ink);">Portal Login Murid</h1>
+        </div>
+      </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="flash-message flash-{{ category }}" style="margin-bottom:1rem;">{{ message }}</div>
+      <p class="login-subheading" style="margin-bottom:1.75rem;font-size:0.875rem;color:var(--ink-2);line-height:1.5;">
+        Silakan pilih asal sekolah dan masukkan NIS serta password kamu untuk melanjutkan.
+      </p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}" style="margin-bottom:1.25rem;">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="/student/login" class="login-form">
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:600;margin-bottom:0.375rem;display:block;">Asal Sekolah *</label>
+          <select name="school_id" class="form-input" required autofocus style="background:var(--paper);color:var(--ink);width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--line);font-size:0.875rem;">
+            <option value="">— Pilih Asal Sekolah —</option>
+            {% for sch in schools %}
+              <option value="{{ sch.id }}">{{ sch.name }}</option>
             {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <!-- Student Form -->
-        <form id="studentForm" method="POST" action="/student/login" class="login-form">
-          <input type="hidden" name="role" value="student">
-          
-          <div class="form-group">
-            <label class="form-label">Asal Sekolah *</label>
-            <select name="school_id" class="form-input" required autofocus style="background:var(--paper);color:var(--ink);">
-              <option value="">— Pilih Asal Sekolah —</option>
-              {% for sch in schools %}
-                <option value="{{ sch.id }}">{{ sch.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">NIS (Nomor Induk Siswa) *</label>
-            <input type="text" name="nis" class="form-input" placeholder="Masukkan NIS" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password *</label>
-            <input type="password" name="password" class="form-input" placeholder="Masukkan password" required>
-          </div>
-          <button type="submit" class="btn btn-primary btn-login-submit" style="font-weight:700;">Masuk sebagai Siswa</button>
-        </form>
-
-        <!-- Admin Form (hidden by default) -->
-        <form id="adminForm" method="POST" action="/admin/login" class="login-form" style="display:none;">
-          <input type="hidden" name="role" value="admin">
-          <div class="form-group">
-            <label class="form-label">Username Admin *</label>
-            <input type="text" name="username" class="form-input" placeholder="Masukkan username admin" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password *</label>
-            <input type="password" name="password" class="form-input" placeholder="Masukkan password" required>
-          </div>
-          <button type="submit" class="btn btn-primary btn-login-submit" style="font-weight:700;">Masuk Portal Sekolah</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- RIGHT: Role Selector -->
-    <div class="login-role-side">
-      <div class="login-role-inner">
-        <h2 class="login-role-title">Masuk Sebagai</h2>
-        <p class="login-role-subtitle">Pilih peran kamu untuk melanjutkan</p>
-
-        <div class="role-cards">
-          <button type="button" class="role-card active" data-role="student" onclick="switchRole('student')">
-            <div class="role-icon">🎓</div>
-            <div class="role-info">
-              <h3 class="role-name">Murid / Siswa</h3>
-              <p class="role-desc">Pinjam dan kembalikan alat lab</p>
-            </div>
-            <div class="role-check">✓</div>
-          </button>
-
-          <button type="button" class="role-card" data-role="admin" onclick="switchRole('admin')">
-            <div class="role-icon">🏫</div>
-            <div class="role-info">
-              <h3 class="role-name">Sekolah / Admin</h3>
-              <p class="role-desc">Kelola murid, alat, dan peminjaman</p>
-            </div>
-            <div class="role-check">✓</div>
-          </button>
+          </select>
         </div>
-      </div>
-    </div>
 
-  </section>
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:600;margin-bottom:0.375rem;display:block;">NIS (Nomor Induk Siswa) *</label>
+          <input type="text" name="nis" class="form-input" placeholder="Masukkan NIS" required style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--line);font-size:0.875rem;">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.75rem;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:600;margin-bottom:0.375rem;display:block;">Password *</label>
+          <input type="password" name="password" class="form-input" placeholder="Masukkan password" required style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--line);font-size:0.875rem;">
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" style="justify-content:center;font-weight:700;padding:12px 20px;font-size:0.9375rem;border-radius:10px;background:#000000;color:#ffffff;">
+          Masuk ke Dashboard Murid &nbsp;→
+        </button>
+      </form>
+    </div>
+  </div>
 
 </div>
-
-<script>
-function switchRole(role) {
-  document.querySelectorAll('.role-card').forEach(card => {
-    card.classList.toggle('active', card.dataset.role === role);
-  });
-  const studentForm = document.getElementById('studentForm');
-  const adminForm = document.getElementById('adminForm');
-  if (role === 'student') {
-    studentForm.style.display = 'flex';
-    adminForm.style.display = 'none';
-  } else {
-    studentForm.style.display = 'none';
-    adminForm.style.display = 'flex';
-  }
-}
-</script>
 
 {% endblock %}
