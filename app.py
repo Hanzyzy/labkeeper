@@ -166,28 +166,41 @@ def create_app() -> Flask:
     @student_required
     def student_dashboard():
         student = current_student()
-        school_id = student.school_id or 1
         
-        # Scoped tools catalog query for this student's school
-        tools = Tool.query.filter_by(school_id=school_id, is_active=True).order_by(Tool.code).all()
-        total_alat = len(tools)
-        tersedia = sum(1 for t in tools if t.is_available())
-        dipinjam = sum(1 for t in tools if not t.is_available())
-        categories = sorted(list(set(t.category for t in tools if t.category)))
-
+        # Only fetch active and past borrowings for this specific student
         active = Borrowing.query.filter_by(
             student_id=student.id, status="active"
         ).order_by(Borrowing.borrow_date.desc()).all()
         past = Borrowing.query.filter(
             Borrowing.student_id == student.id,
             Borrowing.status.in_(["returned", "overdue"])
-        ).order_by(Borrowing.borrow_date.desc()).limit(20).all()
+        ).order_by(Borrowing.borrow_date.desc()).limit(50).all()
         active_borrowing = active[0] if active else None
+        
         return render_template(
             "student_dashboard.html",
             student=student,
             active_borrowing=active_borrowing,
+            active_list=active,
             past=past,
+            base_url=get_config().base_url
+        )
+
+    @app.route("/katalog")
+    @student_required
+    def student_catalog():
+        student = current_student()
+        school_id = student.school_id or 1
+        
+        tools = Tool.query.filter_by(school_id=school_id, is_active=True).order_by(Tool.code).all()
+        total_alat = len(tools)
+        tersedia = sum(1 for t in tools if t.is_available())
+        dipinjam = sum(1 for t in tools if not t.is_available())
+        categories = sorted(list(set(t.category for t in tools if t.category)))
+        
+        return render_template(
+            "student_catalog.html",
+            student=student,
             tools=tools,
             total_alat=total_alat,
             tersedia=tersedia,

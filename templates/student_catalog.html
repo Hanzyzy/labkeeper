@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Katalog Alat Lab — {{ current_student.school_name }}{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:32px;padding-bottom:64px;">
+
+  <!-- Header Banner -->
+  <header class="page-header reveal" style="margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <div>
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);padding:4px 12px;border-radius:999px;margin-bottom:0.75rem;">
+        <span style="font-size:0.75rem;">🏫</span>
+        <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--ink);">{{ current_student.school_name }}</span>
+      </div>
+      <h1 class="page-title" style="margin:0;">Katalog Alat Lab <span class="highlight">.</span></h1>
+      <p class="page-subtitle" style="margin-top:6px;">
+        Pilih dan klik alat laboratorium di bawah ini untuk melihat detail lengkap dan meminjam.
+      </p>
+    </div>
+
+    <div>
+      <a href="/student/dashboard" class="btn btn-secondary" style="font-weight:700;padding:10px 18px;border-radius:12px;">
+        ← Kembali ke Dashboard Saya
+      </a>
+    </div>
+  </header>
+
+  <!-- Metrics Strip -->
+  <section class="metrics-strip reveal reveal-delay-1" style="margin-bottom:2rem;">
+    <div class="metric-item">
+      <span class="metric-label">Laboratorium</span>
+      <span class="metric-value" style="font-size:1rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        {{ current_student.school_name }}
+      </span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Total Alat</span>
+      <span class="metric-value">{{ total_alat }}</span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Tersedia</span>
+      <span class="metric-value available">{{ tersedia }}</span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Dipinjam</span>
+      <span class="metric-value borrowed">{{ dipinjam }}</span>
+    </div>
+  </section>
+
+  <!-- Search & Category Filters -->
+  <section class="catalog-section reveal reveal-delay-2" style="margin-bottom:3rem;">
+    <header class="catalog-header" style="display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+      <div>
+        <span class="eyebrow-tag" style="margin-bottom:0.25rem;">DAFTAR ALAT TERTERA</span>
+        <h2 style="font-family:var(--font-display);font-weight:800;font-size:clamp(1.5rem,3vw,2.25rem);margin:0;color:var(--ink);">
+          Semua Inventaris Alat
+        </h2>
+      </div>
+
+      <!-- Search Box Filter -->
+      <div style="width:100%;max-width:300px;">
+        <input type="text" id="catalogSearchInput" placeholder="🔍 Cari nama atau kode alat..." onkeyup="filterCatalogTools()" class="form-input" style="padding:10px 14px;font-size:0.875rem;border-radius:10px;">
+      </div>
+    </header>
+
+    {% if categories %}
+    <div class="category-pills" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
+      <button type="button" class="category-pill active" onclick="filterCatalogCategory('all', this)">Semua Kategori</button>
+      {% for cat in categories %}
+        <button type="button" class="category-pill" onclick="filterCatalogCategory('{{ cat }}', this)">{{ cat }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tools Grid (Clicking Card or Button opens /tool/<code>) -->
+    {% if tools %}
+    <div class="bento-grid" id="catalogToolGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(270px, 1fr));gap:1.25rem;">
+      {% for tool in tools %}
+      <div class="catalog-tool-card" data-category="{{ tool.category or 'Lainnya' }}" data-search="{{ tool.name.lower() }} {{ tool.code.lower() }}">
+        <a href="/tool/{{ tool.code }}" style="text-decoration:none;color:inherit;display:block;height:100%;">
+          <div class="bezel-card" style="height:100%;border-radius:1rem;transition:transform 0.2s ease, box-shadow 0.2s ease;">
+            <div class="bezel-card-inner" style="display:flex;flex-direction:column;height:100%;padding:1.375rem;">
+              
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;">
+                <span style="font-size:1.875rem;">{{ tool.icon or '📦' }}</span>
+                {% if tool.is_available() %}
+                  <span class="activity-status returned" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;">Tersedia</span>
+                {% else %}
+                  <span class="activity-status borrowed" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;">Dipinjam</span>
+                {% endif %}
+              </div>
+
+              <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--muted);margin-bottom:0.25rem;font-weight:600;">
+                {{ tool.code }}
+              </div>
+
+              <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.1875rem;line-height:1.3;margin-bottom:0.5rem;color:var(--ink);">
+                {{ tool.name }}
+              </h3>
+
+              <p style="font-size:0.8125rem;color:var(--ink-2);margin-bottom:1.25rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                {{ tool.description or 'Alat laboratorium terverifikasi.' }}
+              </p>
+
+              <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:0.875rem;border-top:1px solid var(--line);">
+                <span style="font-size:0.75rem;color:var(--muted);font-weight:500;">
+                  📍 {{ tool.lab_location or 'Rak Lab' }}
+                </span>
+                <span class="btn btn-secondary btn-sm" style="font-size:0.75rem;padding:6px 12px;border-radius:8px;font-weight:700;">
+                  Lihat Detail & Pinjam &nbsp;→
+                </span>
+              </div>
+
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="text-align:center;padding:3.5rem 1.5rem;background:var(--paper);border:1px solid var(--line);border-radius:1rem;">
+      <div class="empty-state-icon" style="font-size:2.5rem;margin-bottom:0.75rem;">📦</div>
+      <div class="empty-state-text" style="font-size:1rem;color:var(--ink-2);">Belum ada alat terdaftar di laboratorium {{ current_student.school_name }}.</div>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+
+<script>
+let currentCat = 'all';
+
+function filterCatalogCategory(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  applyCatalogFilters();
+}
+
+function filterCatalogTools() {
+  applyCatalogFilters();
+}
+
+function applyCatalogFilters() {
+  const query = document.getElementById('catalogSearchInput').value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.catalog-tool-card');
+  
+  cards.forEach(card => {
+    const matchesCat = (currentCat === 'all' || card.dataset.category === currentCat);
+    const matchesSearch = (!query || card.dataset.search.includes(query));
+    
+    if (matchesCat && matchesSearch) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+
+{% endblock %}

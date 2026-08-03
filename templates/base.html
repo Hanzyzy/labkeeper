@@ -42,7 +42,8 @@
           <a href="/admin/dashboard" class="nav-bar-link nav-bar-btn">Admin Panel</a>
           <a href="/admin/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
       {% elif current_student %}
-          <a href="/student/dashboard" class="nav-bar-link nav-bar-btn">Dashboard</a>
+          <a href="/student/dashboard" class="nav-bar-link nav-bar-btn {% if request.endpoint == 'student_dashboard' %}active{% endif %}">Dashboard</a>
+          <a href="/katalog" class="nav-bar-link nav-bar-btn {% if request.endpoint == 'student_catalog' %}active{% endif %}">Katalog Alat</a>
           <a href="/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
       {% endif %}
     </div>
