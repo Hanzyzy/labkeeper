@@ -20,8 +20,8 @@
   {% if (current_student or current_admin) and request.endpoint not in ['index', 'login', 'student_login', 'admin_login'] %}
   <nav class="nav-bar" id="mainNav">
     <div class="nav-bar-right">
-      <a href="/" class="nav-bar-link nav-bar-logo-link" title="Beranda">
-        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="LabKeeper">
+      <a href="/katalog" class="nav-bar-link nav-bar-logo-link" title="Beranda — Katalog Alat Lab">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="LabKeeper Beranda">
       </a>
       <a href="/scan" class="nav-bar-link nav-bar-btn nav-bar-scan-btn {% if request.endpoint == 'scan' %}active{% endif %}">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="qr-icon">
@@ -43,7 +43,6 @@
           <a href="/admin/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
       {% elif current_student %}
           <a href="/student/dashboard" class="nav-bar-link nav-bar-btn {% if request.endpoint == 'student_dashboard' %}active{% endif %}">Dashboard</a>
-          <a href="/katalog" class="nav-bar-link nav-bar-btn {% if request.endpoint == 'student_catalog' %}active{% endif %}">Katalog Alat</a>
           <a href="/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
       {% endif %}
     </div>
