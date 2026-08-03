@@ -46,9 +46,13 @@
               <label class="bulk-checkbox-wrapper" style="margin:0;cursor:pointer;">
                 <input type="checkbox" name="nis" value="{{ s.nis }}" data-bulk-checkbox style="width:18px;height:18px;cursor:pointer;">
               </label>
-              <div class="card-avatar" style="width:38px;height:38px;border-radius:50%;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.125rem;">
-                {{ s.name[0] if s.name else '?' }}
-              </div>
+              {% if s.avatar_url %}
+                <img src="{{ s.avatar_url }}" alt="{{ s.name }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid var(--ink);">
+              {% else %}
+                <div class="card-avatar" style="width:40px;height:40px;border-radius:50%;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.125rem;border:1.5px solid var(--ink);">
+                  {{ s.name[0].upper() if s.name else '?' }}
+                </div>
+              {% endif %}
               <div>
                 <h3 class="card-name" style="font-size:1rem;font-weight:700;margin:0;color:var(--ink);">{{ s.name }}</h3>
                 <p class="card-nis" style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);margin:2px 0 0;">NIS: {{ s.nis }}</p>

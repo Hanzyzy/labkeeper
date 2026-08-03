@@ -152,6 +152,15 @@ class Borrowing(db.Model):
     @property
     def student_nis(self):
         return self.student.nis if self.student else (self.archived_student_nis or "-")
+
+    @property
+    def student_avatar_url(self):
+        return self.student.avatar_url if self.student else None
+
+    @property
+    def student_initial(self):
+        name = self.student_name
+        return name[0].upper() if name and name[0].isalpha() else "?"
     
     @property
     def tool_name(self):

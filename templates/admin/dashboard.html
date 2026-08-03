@@ -44,7 +44,13 @@
       <div class="activity-list">
         {% for b in recent_borrowings[:8] %}
         <div class="activity-item">
-          <div class="activity-avatar">{{ b.student_name[0] if b.student_name else 'S' }}</div>
+          {% if b.student_avatar_url %}
+            <img src="{{ b.student_avatar_url }}" alt="{{ b.student_name }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--line);">
+          {% else %}
+            <div class="activity-avatar" style="width:36px;height:36px;border-radius:50%;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;">
+              {{ b.student_initial }}
+            </div>
+          {% endif %}
           <div class="activity-info">
             <div class="activity-text">
               <strong>{{ b.student_name }}</strong> meminjam <strong>{{ b.tool_name }}</strong>

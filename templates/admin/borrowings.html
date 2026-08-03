@@ -40,7 +40,13 @@
           <div style="width:24px;" title="Sudah dikembalikan"></div>
           {% endif %}
           <div class="card-student-info">
-            <div class="card-avatar">{{ b.student_name[0] if b.student_name else 'S' }}</div>
+            {% if b.student_avatar_url %}
+              <img src="{{ b.student_avatar_url }}" alt="{{ b.student_name }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--line);">
+            {% else %}
+              <div class="card-avatar" style="width:36px;height:36px;border-radius:50%;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;">
+                {{ b.student_initial }}
+              </div>
+            {% endif %}
             <div>
               <h3 class="card-name">{{ b.student_name }}</h3>
               <p class="card-nis">{{ b.student_nis }} &middot; {{ b.tool_name }} ({{ b.tool_code }})</p>
