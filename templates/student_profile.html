@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Profil Saya — LabKeeper{% endblock %}
+{% block content %}
+
+<div class="page-container" style="padding-top:32px;padding-bottom:64px;max-width:720px;">
+
+  <!-- Header Banner -->
+  <header class="page-header reveal" style="margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <div>
+      <span class="eyebrow-tag">Pengaturan Akun</span>
+      <h1 class="page-title" style="margin-top:4px;margin-bottom:0;">Profil Saya <span class="highlight">.</span></h1>
+      <p class="page-subtitle" style="margin-top:6px;">Kelola foto profil dan kata sandi akun siswa kamu.</p>
+    </div>
+
+    <div>
+      <a href="/student/dashboard" class="btn btn-secondary" style="font-weight:700;padding:10px 18px;border-radius:12px;">
+        ← Kembali ke Dashboard
+      </a>
+    </div>
+  </header>
+
+  <form method="POST" action="/student/profile" enctype="multipart/form-data">
+    
+    <!-- Profile Avatar & Info Card -->
+    <div class="bezel-card reveal reveal-delay-1" style="margin-bottom:2rem;border-radius:1.25rem;background:var(--paper);">
+      <div class="bezel-card-inner" style="padding:1.75rem;">
+        
+        <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.25rem;margin:0 0 1.5rem;color:var(--ink);">
+          Foto Profil Siswa
+        </h3>
+
+        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+          
+          <!-- Avatar Preview Container -->
+          <div style="position:relative;">
+            {% if student.avatar_url %}
+              <img id="avatarPreviewImg" src="{{ student.avatar_url }}" alt="{{ student.name }}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ink);box-shadow:0 6px 20px rgba(0,0,0,0.1);">
+            {% else %}
+              <div id="avatarFallback" style="width:96px;height:96px;border-radius:50%;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:2.25rem;border:3px solid var(--ink);box-shadow:0 6px 20px rgba(0,0,0,0.1);">
+                {{ student.name[0] if student.name else '?' }}
+              </div>
+              <img id="avatarPreviewImg" src="" alt="Preview" style="display:none;width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ink);box-shadow:0 6px 20px rgba(0,0,0,0.1);">
+            {% endif %}
+          </div>
+
+          <!-- Upload Input Controls -->
+          <div style="flex:1;min-width:220px;">
+            <label for="avatarInput" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:0.5rem;">
+              📷 Unggah Foto Baru
+            </label>
+            <input type="file" id="avatarInput" name="avatar" accept="image/*" onchange="previewAvatar(this)" style="display:none;">
+            <p style="font-size:0.75rem;color:var(--muted);margin:0;line-height:1.4;">
+              Format file: <strong>JPG, PNG, WEBP, GIF</strong>. Ukuran disarankan rasio 1:1 (Persegi).
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Read-Only Identity Card -->
+    <div class="bezel-card reveal reveal-delay-2" style="margin-bottom:2rem;border-radius:1.25rem;background:var(--paper);">
+      <div class="bezel-card-inner" style="padding:1.75rem;">
+        
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+          <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.25rem;margin:0;color:var(--ink);">
+            Informasi Terdaftar (Terkunci)
+          </h3>
+          <span style="font-size:0.75rem;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-weight:600;">
+            🔒 Kontak Admin untuk Ubah Identitas
+          </span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;">
+          
+          <!-- NIS (Locked) -->
+          <div>
+            <label class="form-label" style="font-weight:700;margin-bottom:0.375rem;display:block;">NIS (Nomor Induk Siswa)</label>
+            <input type="text" value="{{ student.nis }}" class="form-input" disabled style="width:100%;padding:10px 14px;border-radius:10px;background:var(--bg);color:var(--ink);cursor:not-allowed;font-family:var(--font-mono);font-weight:700;border:1px solid var(--line);">
+          </div>
+
+          <!-- Nama Siswa (Locked) -->
+          <div>
+            <label class="form-label" style="font-weight:700;margin-bottom:0.375rem;display:block;">Nama Lengkap Siswa</label>
+            <input type="text" value="{{ student.name }}" class="form-input" disabled style="width:100%;padding:10px 14px;border-radius:10px;background:var(--bg);color:var(--ink);cursor:not-allowed;font-weight:600;border:1px solid var(--line);">
+          </div>
+
+          <!-- Kelas (Locked) -->
+          <div>
+            <label class="form-label" style="font-weight:700;margin-bottom:0.375rem;display:block;">Kelas</label>
+            <input type="text" value="{{ student.class_name }}" class="form-input" disabled style="width:100%;padding:10px 14px;border-radius:10px;background:var(--bg);color:var(--ink);cursor:not-allowed;font-weight:600;border:1px solid var(--line);">
+          </div>
+
+          <!-- Asal Sekolah (Locked) -->
+          <div>
+            <label class="form-label" style="font-weight:700;margin-bottom:0.375rem;display:block;">Asal Sekolah</label>
+            <input type="text" value="{{ student.school_name }}" class="form-input" disabled style="width:100%;padding:10px 14px;border-radius:10px;background:var(--bg);color:var(--ink);cursor:not-allowed;font-weight:600;border:1px solid var(--line);">
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Password Change Card -->
+    <div class="bezel-card reveal reveal-delay-3" style="margin-bottom:2rem;border-radius:1.25rem;background:var(--paper);">
+      <div class="bezel-card-inner" style="padding:1.75rem;">
+        
+        <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.25rem;margin:0 0 0.5rem;color:var(--ink);">
+          Ubah Kata Sandi (Password)
+        </h3>
+        <p style="font-size:0.8125rem;color:var(--ink-2);margin-bottom:1.5rem;">
+          Kosongkan bidang ini jika Anda tidak ingin mengubah kata sandi.
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+          
+          <div>
+            <label class="form-label" style="font-weight:700;margin-bottom:0.375rem;display:block;">Password Lama</label>
+            <input type="password" name="old_password" class="form-input" placeholder="Masukkan password lama kamu..." style="width:100%;padding:10px 14px;border-radius:10px;">
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1.25rem;">
+            <div>
+              <label class="form-label" style="font-weight:700;margin-bottom:0.375rem;display:block;">Password Baru</label>
+              <input type="password" name="new_password" class="form-input" placeholder="Minimal 4 karakter..." style="width:100%;padding:10px 14px;border-radius:10px;">
+            </div>
+
+            <div>
+              <label class="form-label" style="font-weight:700;margin-bottom:0.375rem;display:block;">Konfirmasi Password Baru</label>
+              <input type="password" name="confirm_password" class="form-input" placeholder="Ulangi password baru..." style="width:100%;padding:10px 14px;border-radius:10px;">
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Submit Action -->
+    <div class="reveal reveal-delay-3" style="display:flex;justify-content:end;">
+      <button type="submit" class="btn btn-primary" style="font-weight:700;padding:12px 28px;border-radius:12px;background:#000000;color:#ffffff;font-size:0.9375rem;">
+        💾 Simpan Perubahan Profil
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+function previewAvatar(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.getElementById('avatarPreviewImg');
+      const fallback = document.getElementById('avatarFallback');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      if (fallback) fallback.style.display = 'none';
+    }
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+
+{% endblock %}

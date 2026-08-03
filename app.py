@@ -209,6 +209,50 @@ def create_app() -> Flask:
             base_url=get_config().base_url
         )
 
+    @app.route("/student/profile", methods=["GET", "POST"])
+    @student_required
+    def student_profile():
+        student = current_student()
+        if request.method == "POST":
+            # 1. Password Update
+            old_password = request.form.get("old_password", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            if old_password or new_password or confirm_password:
+                if not student.check_password(old_password):
+                    flash("Password lama yang Anda masukkan salah.", "error")
+                    return redirect(url_for("student_profile"))
+                if len(new_password) < 4:
+                    flash("Password baru minimal 4 karakter.", "warning")
+                    return redirect(url_for("student_profile"))
+                if new_password != confirm_password:
+                    flash("Konfirmasi password baru tidak cocok.", "error")
+                    return redirect(url_for("student_profile"))
+                
+                student.set_password(new_password)
+                flash("Password Anda berhasil diperbarui!", "success")
+
+            # 2. Profile Photo Avatar Upload
+            if "avatar" in request.files:
+                file = request.files["avatar"]
+                if file and file.filename != "":
+                    ext = os.path.splitext(file.filename)[1].lower()
+                    if ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+                        os.makedirs("static/uploads/avatars", exist_ok=True)
+                        filename = f"avatar_std_{student.id}_{int(utcnow().timestamp())}{ext}"
+                        filepath = os.path.join("static/uploads/avatars", filename)
+                        file.save(filepath)
+                        student.avatar_path = filepath
+                        flash("Foto profil berhasil diperbarui!", "success")
+                    else:
+                        flash("Format foto harus JPG, PNG, WEBP, atau GIF.", "error")
+
+            db.session.commit()
+            return redirect(url_for("student_profile"))
+
+        return render_template("student_profile.html", student=student)
+
     @app.route("/logout")
     def logout():
         session.clear()

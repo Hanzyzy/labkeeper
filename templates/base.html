@@ -43,7 +43,28 @@
           <a href="/admin/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
       {% elif current_student %}
           <a href="/student/dashboard" class="nav-bar-link nav-bar-btn {% if request.endpoint == 'student_dashboard' %}active{% endif %}">Dashboard</a>
-          <a href="/logout" class="nav-bar-link nav-bar-btn logout">Logout</a>
+          
+          <!-- Gear Settings Dropdown Popover Menu -->
+          <div class="user-settings-dropdown" style="position:relative;display:inline-block;">
+            <button type="button" class="nav-bar-link nav-bar-btn gear-btn" onclick="toggleSettingsDropdown(event)" title="Pengaturan Akun" style="padding:6px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+              <span style="font-size:1.125rem;">⚙️</span>
+            </button>
+            
+            <div id="settingsDropdownMenu" class="settings-popover" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:200px;background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,0.12);padding:8px;z-index:9999;">
+              <div style="padding:8px 12px;border-bottom:1px solid var(--line);margin-bottom:4px;">
+                <div style="font-weight:700;font-size:0.875rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ current_student.name }}</div>
+                <div style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);">NIS: {{ current_student.nis }}</div>
+              </div>
+
+              <a href="/student/profile" class="popover-item" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:0.875rem;color:var(--ink);text-decoration:none;font-weight:500;">
+                <span>👤</span> Profil Saya
+              </a>
+
+              <a href="/logout" class="popover-item logout" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:0.875rem;color:#DC2626;text-decoration:none;font-weight:600;margin-top:2px;">
+                <span>🚪</span> Logout
+              </a>
+            </div>
+          </div>
       {% endif %}
     </div>
   </nav>
@@ -116,6 +137,18 @@
             }, 400);
           });
         }, 1200);
+    // Toggle Gear Settings Dropdown
+    function toggleSettingsDropdown(e) {
+      e.stopPropagation();
+      const menu = document.getElementById('settingsDropdownMenu');
+      if (menu) {
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+      }
+    }
+    document.addEventListener('click', function(e) {
+      const menu = document.getElementById('settingsDropdownMenu');
+      if (menu && !menu.contains(e.target)) {
+        menu.style.display = 'none';
       }
     });
   </script>

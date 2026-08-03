@@ -52,6 +52,7 @@ class Student(db.Model):
     class_name = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     phone = db.Column(db.String(20))
+    avatar_path = db.Column(db.String(255))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -66,6 +67,16 @@ class Student(db.Model):
     @property
     def school_name(self):
         return self.school.name if self.school else "SMK Telkom Bandung"
+
+    @property
+    def avatar_url(self):
+        if self.avatar_path:
+            from flask import url_for
+            relative = self.avatar_path.replace("\\", "/")
+            if relative.startswith("static/"):
+                relative = relative[7:]
+            return url_for('static', filename=relative, _external=False)
+        return None
 
 
 class Tool(db.Model):
