@@ -16,8 +16,8 @@
 </head>
 <body>
 
-  <!-- Sticky Nav (ONLY visible when user or admin is logged in) -->
-  {% if current_student or current_admin %}
+  <!-- Sticky Nav (ONLY visible on inside app pages when user or admin is logged in) -->
+  {% if (current_student or current_admin) and request.endpoint not in ['index', 'login', 'student_login', 'admin_login'] %}
   <nav class="nav-bar" id="mainNav">
     <div class="nav-bar-right">
       <a href="/" class="nav-bar-link nav-bar-logo-link" title="Beranda">
