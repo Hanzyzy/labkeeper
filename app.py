@@ -2,7 +2,6 @@ import sys
 import os
 
 # Fix: Ensure this project's venv site-packages comes FIRST in sys.path
-# This prevents Hermes venv's corrupt PIL from being imported instead
 _this_dir = os.path.dirname(os.path.abspath(__file__))
 _venv_site = os.path.join(_this_dir, 'venv', 'Lib', 'site-packages')
 if _venv_site in sys.path:
@@ -10,10 +9,10 @@ if _venv_site in sys.path:
 sys.path.insert(0, _venv_site)
 
 """LabKeeper — Main Flask application
-Lab equipment borrowing system with static QR codes.
-- Public visitors can scan a QR (printed on each tool) → land on /tool/<code>
-- Students log in (NIS) to actually borrow or return
-- Admins (laboran) log in to manage everything
+Multi-School Lab Equipment Borrowing System with QR Codes.
+- Dual entry portals on landing page: Student Portal & School/Admin Portal
+- Student login with "Asal Sekolah" dropdown selection
+- Admin manages equipment, students, and borrowings strictly isolated per school
 """
 import os
 from datetime import datetime, timedelta, timezone
@@ -25,7 +24,7 @@ def utcnow() -> datetime:
     """Timezone-aware UTC now (Python 3.12+ deprecates naive datetime.utcnow())."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
-from models import db, init_db, Student, Admin, Tool, Borrowing, Config
+from models import db, init_db, Student, Admin, Tool, Borrowing, Config, School
 from datetime_utils import get_config
 from auth import current_student, current_admin, student_required, admin_required
 from qr_utils import generate_qr_for_tool, qr_url_for_tool
@@ -42,8 +41,6 @@ def create_app() -> Flask:
     init_db(app)
 
     # ============= SESSION PERSISTENCE =============
-    # Make session permanent as long as the user is logged in (student OR admin).
-    # This ensures they stay logged in across browser sessions until they explicitly logout.
     @app.before_request
     def make_session_permanent():
         if session.get("student_id") or session.get("admin_id"):
@@ -55,9 +52,13 @@ def create_app() -> Flask:
         import datetime
         import random
         timestamp = int(datetime.datetime.now().timestamp())
+        c_student = current_student()
+        c_admin = current_admin()
+        schools = School.query.filter_by(is_active=True).order_by(School.name).all()
         return {
-            "current_student": current_student(),
-            "current_admin": current_admin(),
+            "current_student": c_student,
+            "current_admin": c_admin,
+            "schools": schools,
             "get_config": get_config,
             "now": utcnow,
             "timestamp": timestamp,
@@ -67,13 +68,48 @@ def create_app() -> Flask:
     # ============= PUBLIC ROUTES (no login) =============
     @app.route("/")
     def index():
-        tools = Tool.query.filter_by(is_active=True).order_by(Tool.code).all()
+        schools = School.query.filter_by(is_active=True).order_by(School.name).all()
+        c_student = current_student()
+        
+        # Determine selected school
+        school_id_param = request.args.get("school_id")
+        if school_id_param and school_id_param.isdigit():
+            selected_school_id = int(school_id_param)
+            session["selected_school_id"] = selected_school_id
+        elif c_student and c_student.school_id:
+            selected_school_id = c_student.school_id
+        elif session.get("selected_school_id"):
+            selected_school_id = int(session.get("selected_school_id"))
+        else:
+            selected_school_id = schools[0].id if schools else 1
+
+        selected_school = School.query.get(selected_school_id) or (schools[0] if schools else None)
+
+        # Scoped tools query
+        tools_query = Tool.query.filter_by(is_active=True)
+        if selected_school_id:
+            tools_query = tools_query.filter_by(school_id=selected_school_id)
+        
+        tools = tools_query.order_by(Tool.code).all()
         total_alat = len(tools)
         tersedia = sum(1 for t in tools if t.is_available())
         dipinjam = sum(1 for t in tools if not t.is_available())
         telat = sum(1 for t in tools if not t.is_available() and t.current_borrowing() and t.current_borrowing().is_overdue())
         categories = sorted(list(set(t.category for t in tools if t.category)))
-        return render_template("index.html", tools=tools, total_alat=total_alat, tersedia=tersedia, dipinjam=dipinjam, telat=telat, categories=categories, base_url=get_config().base_url)
+        
+        return render_template(
+            "index.html", 
+            tools=tools, 
+            total_alat=total_alat, 
+            tersedia=tersedia, 
+            dipinjam=dipinjam, 
+            telat=telat, 
+            categories=categories, 
+            schools=schools,
+            selected_school_id=selected_school_id,
+            selected_school=selected_school,
+            base_url=get_config().base_url
+        )
 
     @app.route("/tool/<code>")
     def tool_detail(code):
@@ -83,7 +119,6 @@ def create_app() -> Flask:
             return redirect(url_for("scan"))
         current = tool.current_borrowing()
         student = current_student()
-        # Get borrowing history for this tool
         history = Borrowing.query.filter_by(tool_id=tool.id).order_by(Borrowing.borrow_date.desc()).limit(20).all()
         return render_template("tool_detail.html", tool=tool, current=current, student=student, borrowing_history=history, base_url=get_config().base_url)
 
@@ -96,7 +131,7 @@ def create_app() -> Flask:
             tool = Tool.query.filter_by(code=code, is_active=True).first()
         return render_template("scan.html", tool=tool)
 
-    # Unified login page
+    # Unified login entry point
     @app.route("/login")
     def login():
         if current_admin():
@@ -112,30 +147,41 @@ def create_app() -> Flask:
             return redirect(url_for("admin_dashboard"))
         if current_student():
             return redirect(url_for("student_dashboard"))
+        
+        schools = School.query.filter_by(is_active=True).order_by(School.name).all()
         nxt = request.args.get("next") or url_for("index")
+        
         if request.method == "POST":
+            school_id = request.form.get("school_id")
             nis = request.form.get("nis", "").strip()
             password = request.form.get("password", "")
-            student = Student.query.filter_by(nis=nis).first()
+            
+            if not school_id or not nis or not password:
+                flash("Pilih asal sekolah, NIS, dan password wajib diisi.", "warning")
+                return render_template("login.html", schools=schools, next_url=nxt)
+
+            student = Student.query.filter_by(school_id=school_id, nis=nis).first()
+            
             if student and not student.is_active:
-                flash("Akun Anda sudah dinonaktifkan. Hubungi admin lab.", "error")
+                flash("Akun Anda sudah dinonaktifkan. Hubungi admin lab sekolah.", "error")
             elif student and student.check_password(password):
                 session.permanent = True
                 session["student_id"] = student.id
-                flash(f"Selamat datang, {student.name}!", "success")
+                session["school_id"] = student.school_id
+                flash(f"Selamat datang, {student.name} ({student.school_name})!", "success")
                 return redirect(request.form.get("next") or nxt)
-            flash("NIS atau password salah.", "error")
-        return render_template("login.html", next_url=nxt)
+            else:
+                flash("Sekolah, NIS, atau password salah.", "error")
+                
+        return render_template("login.html", schools=schools, next_url=nxt)
 
     @app.route("/student/dashboard")
     @student_required
     def student_dashboard():
         student = current_student()
-        # Get active borrowings for this student
         active = Borrowing.query.filter_by(
             student_id=student.id, status="active"
         ).order_by(Borrowing.borrow_date.desc()).all()
-        # Get past borrowings
         past = Borrowing.query.filter(
             Borrowing.student_id == student.id,
             Borrowing.status.in_(["returned", "overdue"])
@@ -157,7 +203,6 @@ def create_app() -> Flask:
 
     @app.route("/clear-flash")
     def clear_flash():
-        """Clear all flash messages without showing them."""
         from flask import session as fl_session
         fl_session.pop("_flashes", None)
         return redirect(request.referrer or url_for("index"))
@@ -167,6 +212,12 @@ def create_app() -> Flask:
     def pinjam(code):
         tool = Tool.query.filter_by(code=code, is_active=True).first_or_404()
         student = current_student()
+        
+        # Enforce same school check
+        if tool.school_id and student.school_id and tool.school_id != student.school_id:
+            flash(f"Alat ini milik laboratorium {tool.school_name}. Anda terdaftar di {student.school_name}.", "error")
+            return redirect(url_for("tool_detail", code=code))
+
         if not tool.is_available():
             flash(f"Maaf, {tool.name} sedang dipinjam.", "warning")
             return redirect(url_for("tool_detail", code=code))
@@ -175,6 +226,7 @@ def create_app() -> Flask:
             notes = request.form.get("notes", "").strip()
             hours = get_config().loan_duration_hours
             new = Borrowing(
+                school_id=student.school_id or tool.school_id,
                 tool_id=tool.id,
                 student_id=student.id,
                 borrow_date=utcnow(),
@@ -206,23 +258,20 @@ def create_app() -> Flask:
         current.condition_after = request.form.get("condition_after", "Baik")
         db.session.commit()
         flash(f"Terima kasih! {tool.name} sudah dikembalikan.", "success")
-        return redirect(url_for("tool_detail", code=code))
+        return redirect(request.referrer or url_for("student_dashboard"))
 
     @app.route("/perpanjang/<int:borrowing_id>", methods=["GET", "POST"])
     @student_required
     def perpanjang(borrowing_id):
         borrowing = Borrowing.query.get_or_404(borrowing_id)
         student = current_student()
-        
-        # Validasi: hanya bisa perpanjang jika peminjaman milik siswa ini dan masih aktif/telat
         if borrowing.student_id != student.id:
-            flash("Anda tidak memiliki izin untuk memperpanjang peminjaman ini.", "error")
+            flash("Anda tidak memiliki akses ke peminjaman ini.", "error")
             return redirect(url_for("student_dashboard"))
         if borrowing.status == "returned":
             flash("Peminjaman ini sudah selesai.", "warning")
             return redirect(url_for("student_dashboard"))
         
-        # Hitung batas perpanjangan maksimal 2x per peminjaman
         max_extends = 2
         extend_count = getattr(borrowing, 'extend_count', 0)
         if extend_count >= max_extends:
@@ -231,17 +280,13 @@ def create_app() -> Flask:
         
         if request.method == "POST":
             choice = request.form.get("choice")
-            
             if choice == "return":
-                # Kembalikan segera
                 borrowing.return_date = utcnow()
                 borrowing.status = "returned"
                 db.session.commit()
                 flash(f"{borrowing.tool.name} berhasil dikembalikan.", "success")
                 return redirect(url_for("student_dashboard"))
-            
             elif choice == "extend":
-                # Perpanjang waktu (tambah 1x durasi pinjaman default)
                 hours = get_config().loan_duration_hours
                 borrowing.deadline = borrowing.deadline + timedelta(hours=hours)
                 borrowing.extend_count = extend_count + 1
@@ -250,7 +295,6 @@ def create_app() -> Flask:
                 flash(f"Peminjaman {borrowing.tool.name} diperpanjang hingga {new_deadline}.", "success")
                 return redirect(url_for("student_dashboard"))
         
-        # GET request - tampilkan halaman konfirmasi
         can_extend = extend_count < max_extends
         return render_template(
             "extend_confirm.html",
@@ -275,6 +319,7 @@ def create_app() -> Flask:
         if current_admin():
             return redirect(url_for("admin_dashboard"))
         nxt = request.args.get("next") or url_for("admin_dashboard")
+        schools = School.query.filter_by(is_active=True).order_by(School.name).all()
         if request.method == "POST":
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "")
@@ -282,10 +327,11 @@ def create_app() -> Flask:
             if admin and admin.check_password(password):
                 session.permanent = True
                 session["admin_id"] = admin.id
-                flash(f"Login berhasil. Halo, {admin.full_name or admin.username}.", "success")
+                session["school_id"] = admin.school_id
+                flash(f"Login berhasil. Halo, {admin.full_name or admin.username} ({admin.school_name}).", "success")
                 return redirect(request.form.get("next") or nxt)
             flash("Username atau password salah.", "error")
-        return render_template("admin/admin_login.html", next_url=nxt)
+        return render_template("admin/admin_login.html", schools=schools, next_url=nxt)
 
     @app.route("/admin/logout")
     def admin_logout():
@@ -296,52 +342,75 @@ def create_app() -> Flask:
     @app.route("/admin/dashboard")
     @admin_required
     def admin_dashboard():
-        active = (Borrowing.query.filter_by(status="active")
-                  .order_by(Borrowing.deadline.asc()).all())
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        
+        active_query = Borrowing.query.filter_by(status="active")
+        if school_id:
+            active_query = active_query.filter_by(school_id=school_id)
+        active = active_query.order_by(Borrowing.deadline.asc()).all()
+
         for b in active:
             b.seconds_left = b.seconds_remaining()
             b.elapsed_str = _humanize_seconds(b.elapsed_seconds())
             b.remaining_str = _humanize_seconds(b.seconds_left)
-        all_tools = Tool.query.filter_by(is_active=True).all()
+
+        tools_query = Tool.query.filter_by(is_active=True)
+        if school_id:
+            tools_query = tools_query.filter_by(school_id=school_id)
+        all_tools = tools_query.all()
+
         total_alat = len(all_tools)
         tersedia = sum(1 for t in all_tools if t.is_available())
         dipinjam = sum(1 for t in all_tools if not t.is_available())
         telat = sum(1 for b in active if b.is_overdue)
-        recent_borrowings = (Borrowing.query.order_by(Borrowing.borrow_date.desc()).limit(20).all())
 
-        return render_template("admin/dashboard.html", 
-                               total_alat=total_alat, tersedia=tersedia, 
-                               dipinjam=dipinjam, telat=telat,
-                               recent_borrowings=recent_borrowings)
+        recent_query = Borrowing.query
+        if school_id:
+            recent_query = recent_query.filter_by(school_id=school_id)
+        recent_borrowings = recent_query.order_by(Borrowing.borrow_date.desc()).limit(20).all()
+
+        return render_template(
+            "admin/dashboard.html", 
+            total_alat=total_alat, 
+            tersedia=tersedia, 
+            dipinjam=dipinjam, 
+            telat=telat,
+            recent_borrowings=recent_borrowings,
+            admin=admin
+        )
 
     @app.route("/admin/tools")
     @admin_required
     def admin_tools():
+        admin = current_admin()
+        school_id = admin.school_id or 1
         search = request.args.get("search", "").strip()
         action = request.args.get("action", "")
         
         if action == "add":
-            return render_template("admin/tool_form.html", tool=None)
+            return render_template("admin/tool_form.html", tool=None, admin=admin)
         
         if action == "edit":
             code = request.args.get("code", "")
-            tool = Tool.query.filter_by(code=code).first_or_404()
-            return render_template("admin/tool_form.html", tool=tool)
+            tool = Tool.query.filter_by(code=code, school_id=school_id).first_or_404()
+            return render_template("admin/tool_form.html", tool=tool, admin=admin)
         
         page = int(request.args.get("page", 1))
         per_page = 20
-        query = Tool.query.filter_by(is_active=True)
+        query = Tool.query.filter_by(is_active=True, school_id=school_id)
         if search:
             query = query.filter(Tool.name.ilike(f"%{search}%") | Tool.code.ilike(f"%{search}%"))
         total = query.count()
         tools = query.order_by(Tool.code).offset((page - 1) * per_page).limit(per_page).all()
         total_pages = max(1, (total + per_page - 1) // per_page)
-        return render_template("admin/tools.html", tools=tools, search=search, current_page=page, total_pages=total_pages)
+        return render_template("admin/tools.html", tools=tools, search=search, current_page=page, total_pages=total_pages, admin=admin)
     
-    # Handle action-based tool CRUD via POST form
     @app.route("/admin/tools/action", methods=["POST"])
     @admin_required
     def admin_tools_action():
+        admin = current_admin()
+        school_id = admin.school_id or 1
         action = request.form.get("_action", "add")
         
         if action == "add":
@@ -356,29 +425,35 @@ def create_app() -> Flask:
             if not code or not name:
                 flash("Kode dan nama alat wajib diisi.", "error")
                 return redirect(url_for("admin_tools"))
-            if Tool.query.filter_by(code=code).first():
-                flash(f"Kode {code} sudah dipakai.", "error")
+            if Tool.query.filter_by(code=code, school_id=school_id).first():
+                flash(f"Kode {code} sudah dipakai di sekolah ini.", "error")
                 return redirect(url_for("admin_tools"))
             
-            tool = Tool(code=code, name=name, category=category, lab_location=lab_location, 
-                       condition=condition, description=description, icon=icon)
+            tool = Tool(
+                school_id=school_id, 
+                code=code, 
+                name=name, 
+                category=category, 
+                lab_location=lab_location, 
+                condition=condition, 
+                description=description, 
+                icon=icon
+            )
             db.session.add(tool)
             db.session.commit()
             try:
                 qr_path = generate_qr_for_tool(tool)
                 tool.qr_path = qr_path
                 db.session.commit()
-                app.logger.info(f"QR generated for {tool.code}: {qr_path}")
             except Exception as e:
                 db.session.rollback()
-                app.logger.error(f"QR generation failed for {tool.code}: {e}", exc_info=True)
                 flash(f"Alat ditambahkan tapi QR gagal di-generate: {e}", "warning")
             flash(f"Alat {tool.name} ditambahkan.", "success")
             return redirect(url_for("admin_tools"))
         
         elif action == "update":
             old_code = request.form.get("old_code", "").strip().upper()
-            tool = Tool.query.filter_by(code=old_code).first_or_404()
+            tool = Tool.query.filter_by(code=old_code, school_id=school_id).first_or_404()
             new_code = request.form.get("code", "").strip().upper()
             tool.code = new_code
             tool.name = request.form.get("name", "").strip()
@@ -395,7 +470,7 @@ def create_app() -> Flask:
             code = request.form.get("code", "").strip().upper()
             if not code:
                 code = request.form.get("id", "").strip().upper()
-            tool = Tool.query.filter_by(code=code).first_or_404()
+            tool = Tool.query.filter_by(code=code, school_id=school_id).first_or_404()
             if tool.current_borrowing():
                 flash("Tidak bisa hapus alat yang sedang dipinjam.", "error")
             else:
@@ -409,8 +484,9 @@ def create_app() -> Flask:
     @app.route("/admin/generate-qr/<code>", methods=["POST"])
     @admin_required
     def admin_generate_qr(code):
-        tool = Tool.query.filter_by(code=code, is_active=True).first_or_404()
-        from qr_utils import generate_qr_for_tool, qr_url_for_tool
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        tool = Tool.query.filter_by(code=code, school_id=school_id, is_active=True).first_or_404()
         path = generate_qr_for_tool(tool)
         tool.qr_path = path
         db.session.commit()
@@ -419,7 +495,9 @@ def create_app() -> Flask:
     @app.route("/admin/generate-all-qr")
     @admin_required
     def admin_generate_all_qr():
-        tools = Tool.query.filter_by(is_active=True).all()
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        tools = Tool.query.filter_by(school_id=school_id, is_active=True).all()
         for tool in tools:
             generate_qr_for_tool(tool)
         db.session.commit()
@@ -429,9 +507,12 @@ def create_app() -> Flask:
     @app.route("/admin/borrowings")
     @admin_required
     def admin_borrowings():
+        admin = current_admin()
+        school_id = admin.school_id or 1
         search = request.args.get("search", "").strip()
         status_filter = request.args.get("status_filter", "").strip()
-        q = Borrowing.query.order_by(Borrowing.borrow_date.desc())
+        
+        q = Borrowing.query.filter_by(school_id=school_id).order_by(Borrowing.borrow_date.desc())
         if search:
             q = q.filter(
                 db.or_(
@@ -450,7 +531,7 @@ def create_app() -> Flask:
         for b in borrowings:
             b.seconds_left = b.seconds_remaining()
         return render_template("admin/borrowings.html", borrowings=borrowings, 
-                               search=search, status_filter=status_filter)
+                               search=search, status_filter=status_filter, admin=admin)
 
     @app.route("/admin/borrowings/export-csv")
     @admin_required
@@ -461,10 +542,12 @@ def create_app() -> Flask:
         from io import BytesIO
         from flask import send_file
 
+        admin = current_admin()
+        school_id = admin.school_id or 1
         search = request.args.get("search", "").strip()
         status_filter = request.args.get("status_filter", "").strip()
 
-        q = Borrowing.query.order_by(Borrowing.borrow_date.desc())
+        q = Borrowing.query.filter_by(school_id=school_id).order_by(Borrowing.borrow_date.desc())
         if search:
             q = q.filter(
                 db.or_(
@@ -485,19 +568,14 @@ def create_app() -> Flask:
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Laporan Peminjaman"
-
-        # Show gridlines
         ws.views.sheetView[0].showGridLines = True
 
-        # Color palette & styles
         title_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
         subtitle_fill = PatternFill(start_color="334155", end_color="334155", fill_type="solid")
         header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
-        
         even_row_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
         odd_row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
 
-        # Status Fills & Fonts
         status_returned_fill = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
         status_returned_font = Font(name="Segoe UI", size=10, bold=True, color="15803D")
 
@@ -522,26 +600,23 @@ def create_app() -> Flask:
         align_center = Alignment(horizontal="center", vertical="center")
         align_left = Alignment(horizontal="left", vertical="center")
 
-        # 1. Title Banner
         ws.merge_cells("A1:K1")
-        ws["A1"] = "LAPORAN REKAPITULASI PEMINJAMAN ALAT LABORATORIUM"
+        ws["A1"] = f"LAPORAN REKAPITULASI PEMINJAMAN ALAT — {admin.school_name.upper()}"
         ws["A1"].font = title_font
         ws["A1"].fill = title_fill
         ws["A1"].alignment = align_center
         ws.row_dimensions[1].height = 32
 
-        # 2. Subtitle
         ws.merge_cells("A2:K2")
         now_str = utcnow().strftime("%d/%m/%Y %H:%M WIB")
-        ws["A2"] = f"Sistem LabKeeper — SMK Telkom  |  Tanggal Cetak: {now_str}  |  Total Data: {len(borrowings)}"
+        ws["A2"] = f"Sistem LabKeeper — {admin.school_name}  |  Tanggal Cetak: {now_str}  |  Total Data: {len(borrowings)}"
         ws["A2"].font = subtitle_font
         ws["A2"].fill = subtitle_fill
         ws["A2"].alignment = align_center
         ws.row_dimensions[2].height = 22
 
-        ws.row_dimensions[3].height = 10  # spacing row
+        ws.row_dimensions[3].height = 10
 
-        # 3. Table Headers (Row 4)
         headers = ["No", "ID", "Nama Siswa", "NIS", "Kode Alat", "Nama Alat", "Tgl Pinjam", "Batas Kembali", "Tgl Kembali", "Status", "Kondisi Akhir"]
         ws.row_dimensions[4].height = 26
 
@@ -552,7 +627,6 @@ def create_app() -> Flask:
             cell.alignment = align_center
             cell.border = thin_border
 
-        # 4. Data Rows (Row 5+)
         start_row = 5
         for idx, b in enumerate(borrowings, 1):
             row_num = start_row + idx - 1
@@ -584,8 +658,7 @@ def create_app() -> Flask:
                 cell.alignment = alignment
                 cell.border = thin_border
 
-                # Highlight Status column
-                if col_idx == 10:  # Status Column
+                if col_idx == 10:
                     if status_str == "Dikembalikan":
                         cell.fill = status_returned_fill
                         cell.font = status_returned_font
@@ -596,13 +669,11 @@ def create_app() -> Flask:
                         cell.fill = status_active_fill
                         cell.font = status_active_font
 
-        # 5. Auto-fit column widths nicely
         padding = {1: 6, 2: 8, 3: 24, 4: 14, 5: 14, 6: 24, 7: 20, 8: 20, 9: 20, 10: 16, 11: 16}
         for col_idx, width in padding.items():
             col_letter = get_column_letter(col_idx)
             ws.column_dimensions[col_letter].width = width
 
-        # 6. Save & Stream Excel Workbook
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -618,7 +689,9 @@ def create_app() -> Flask:
     @app.route("/admin/return/<int:bid>", methods=["GET", "POST"])
     @admin_required
     def admin_return(bid):
-        b = Borrowing.query.get_or_404(bid)
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        b = Borrowing.query.filter_by(id=bid, school_id=school_id).first_or_404()
         if request.method == "POST":
             b.return_date = utcnow()
             b.status = "returned"
@@ -631,8 +704,9 @@ def create_app() -> Flask:
     @app.route("/admin/extend/<int:bid>", methods=["GET", "POST"])
     @admin_required
     def admin_extend(bid):
-        """Admin force-extends a borrowing by N hours (default 2). Bypass max_extend limit."""
-        b = Borrowing.query.get_or_404(bid)
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        b = Borrowing.query.filter_by(id=bid, school_id=school_id).first_or_404()
         if b.status == "returned":
             flash("Peminjaman sudah dikembalikan.", "warning")
             return redirect(url_for("admin_borrowings"))
@@ -640,14 +714,11 @@ def create_app() -> Flask:
             hours = int(request.form.get("hours", 2)) if request.method == "POST" else int(request.args.get("hours", 2))
         except (TypeError, ValueError):
             hours = 2
-        hours = max(1, min(hours, 168))  # 1 jam sampai 7 hari
+        hours = max(1, min(hours, 168))
 
-        from datetime import timedelta
-        # Kalau deadline sudah lewat, tambah dari sekarang. Kalau belum, tambah dari deadline lama.
         base = b.deadline if b.deadline > utcnow() else utcnow()
         b.deadline = base + timedelta(hours=hours)
         b.extend_count = (b.extend_count or 0) + 1
-        # Auto-mark kembali ke 'active' kalau sebelumnya overdue
         if b.status == "overdue":
             b.status = "active"
         db.session.commit()
@@ -657,7 +728,8 @@ def create_app() -> Flask:
     @app.route("/admin/borrowings/bulk-action", methods=["POST"])
     @admin_required
     def admin_borrowings_bulk_action():
-        """Bulk operations on selected borrowings."""
+        admin = current_admin()
+        school_id = admin.school_id or 1
         action = request.form.get("_action", "")
         bid_list = request.form.getlist("bid")
         try:
@@ -670,7 +742,7 @@ def create_app() -> Flask:
             return redirect(url_for("admin_borrowings"))
 
         bid_ints = [int(x) for x in bid_list if x.isdigit()]
-        borrowings = Borrowing.query.filter(Borrowing.id.in_(bid_ints)).all()
+        borrowings = Borrowing.query.filter(Borrowing.id.in_(bid_ints), Borrowing.school_id == school_id).all()
         if not borrowings:
             flash("Tidak ada peminjaman yang cocok.", "error")
             return redirect(url_for("admin_borrowings"))
@@ -687,7 +759,6 @@ def create_app() -> Flask:
             flash(f"{count} peminjaman ditandai dikembalikan.", "success")
 
         elif action == "extend":
-            from datetime import timedelta
             count = 0
             for b in borrowings:
                 if b.status == "returned":
@@ -708,18 +779,20 @@ def create_app() -> Flask:
     @app.route("/admin/students")
     @admin_required
     def admin_students():
+        admin = current_admin()
+        school_id = admin.school_id or 1
         search = request.args.get("search", "").strip()
         action = request.args.get("action", "")
         
         if action == "add":
-            return render_template("admin/student_form.html", student=None)
+            return render_template("admin/student_form.html", student=None, admin=admin)
         
         if action == "edit":
             nis = request.args.get("nis", "")
-            student = Student.query.filter_by(nis=nis).first_or_404()
-            return render_template("admin/student_form.html", student=student)
+            student = Student.query.filter_by(nis=nis, school_id=school_id).first_or_404()
+            return render_template("admin/student_form.html", student=student, admin=admin)
         
-        query = Student.query.filter_by(is_active=True)
+        query = Student.query.filter_by(is_active=True, school_id=school_id)
         if search:
             query = query.filter(
                 db.or_(
@@ -729,16 +802,17 @@ def create_app() -> Flask:
                 )
             )
         students = query.order_by(Student.class_name, Student.name).all()
-        # Add active borrowing count for each student
         for s in students:
             s.active_borrowings_count = Borrowing.query.filter_by(
                 student_id=s.id, status='active'
             ).count()
-        return render_template("admin/students.html", students=students, search=search)
+        return render_template("admin/students.html", students=students, search=search, admin=admin)
 
     @app.route("/admin/students/action", methods=["POST"])
     @admin_required
     def admin_students_action():
+        admin = current_admin()
+        school_id = admin.school_id or 1
         action = request.form.get("_action", "add")
         
         if action == "add":
@@ -750,10 +824,10 @@ def create_app() -> Flask:
             if not nis or not name or not class_name or not password:
                 flash("Semua field wajib diisi.", "error")
                 return redirect(url_for("admin_students"))
-            if Student.query.filter_by(nis=nis).first():
-                flash("NIS sudah terdaftar.", "error")
+            if Student.query.filter_by(school_id=school_id, nis=nis).first():
+                flash(f"NIS {nis} sudah terdaftar di sekolah ini.", "error")
                 return redirect(url_for("admin_students"))
-            s = Student(nis=nis, name=name, class_name=class_name)
+            s = Student(school_id=school_id, nis=nis, name=name, class_name=class_name)
             s.set_password(password)
             db.session.add(s)
             db.session.commit()
@@ -762,7 +836,7 @@ def create_app() -> Flask:
         
         elif action == "update":
             old_nis = request.form.get("old_nis", "").strip()
-            s = Student.query.filter_by(nis=old_nis).first_or_404()
+            s = Student.query.filter_by(school_id=school_id, nis=old_nis).first_or_404()
             new_nis = request.form.get("nis", "").strip()
             s.nis = new_nis
             s.name = request.form.get("name", "").strip()
@@ -776,10 +850,8 @@ def create_app() -> Flask:
 
         elif action == "delete":
             nis = request.form.get("nis", "").strip()
-            s = Student.query.filter_by(nis=nis).first_or_404()
+            s = Student.query.filter_by(school_id=school_id, nis=nis).first_or_404()
 
-            # Snapshot info murid ke borrowings sebelum hapus —
-            # supaya history tetap punya identitas walau student hilang.
             Borrowing.query.filter_by(student_id=s.id).update({
                 Borrowing.student_id: None,
                 Borrowing.archived_student_name: s.name,
@@ -788,11 +860,7 @@ def create_app() -> Flask:
 
             db.session.delete(s)
             db.session.commit()
-            flash(
-                f"Siswa {s.name} dihapus permanen. "
-                f"Histori peminjaman tetap tersimpan.",
-                "info",
-            )
+            flash(f"Siswa {s.name} dihapus permanen. Histori peminjaman tetap tersimpan.", "info")
             return redirect(url_for("admin_students"))
         
         return redirect(url_for("admin_students"))
@@ -800,15 +868,16 @@ def create_app() -> Flask:
     @app.route("/admin/students/bulk-action", methods=["POST"])
     @admin_required
     def admin_students_bulk_action():
-        """Bulk operations on selected students via checkbox."""
+        admin = current_admin()
+        school_id = admin.school_id or 1
         action = request.form.get("_action", "")
-        nis_list = request.form.getlist("nis")  # ambil semua NIS yang dicentang
+        nis_list = request.form.getlist("nis")
 
         if not nis_list:
             flash("Pilih minimal satu siswa terlebih dahulu.", "warning")
             return redirect(url_for("admin_students"))
 
-        students = Student.query.filter(Student.nis.in_(nis_list)).all()
+        students = Student.query.filter(Student.nis.in_(nis_list), Student.school_id == school_id).all()
         if not students:
             flash("Tidak ada siswa yang cocok dengan pilihan.", "error")
             return redirect(url_for("admin_students"))
@@ -826,7 +895,6 @@ def create_app() -> Flask:
             flash(f"{len(students)} siswa dinonaktifkan.", "info")
 
         elif action == "delete":
-            # Snapshot history sebelum hapus (sama seperti delete satuan)
             for s in students:
                 Borrowing.query.filter_by(student_id=s.id).update({
                     Borrowing.student_id: None,
@@ -835,11 +903,7 @@ def create_app() -> Flask:
                 })
                 db.session.delete(s)
             db.session.commit()
-            flash(
-                f"{len(students)} siswa dihapus permanen. "
-                f"Histori peminjaman tetap tersimpan.",
-                "info",
-            )
+            flash(f"{len(students)} siswa dihapus permanen. Histori peminjaman tetap tersimpan.", "info")
         else:
             flash(f"Aksi tidak dikenal: {action}", "error")
 
@@ -848,42 +912,49 @@ def create_app() -> Flask:
     @app.route("/admin/qr-labels")
     @admin_required
     def admin_qr_labels():
-        tools = Tool.query.filter_by(is_active=True).order_by(Tool.code).all()
-        return render_template("admin/qr_labels.html", tools=tools)
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        tools = Tool.query.filter_by(school_id=school_id, is_active=True).order_by(Tool.code).all()
+        return render_template("admin/qr_labels.html", tools=tools, admin=admin)
 
     @app.route("/admin/settings", methods=["GET", "POST"])
     @admin_required
     def admin_settings():
+        admin = current_admin()
         cfg = Config.get_solo()
         if request.method == "POST":
             cfg.loan_duration_hours = int(request.form.get("duration_hours", 24))
             db.session.commit()
             flash("Pengaturan disimpan.", "success")
             return redirect(url_for("admin_settings"))
-        return render_template("admin/settings.html", settings=cfg)
+        return render_template("admin/settings.html", settings=cfg, admin=admin)
 
     @app.route("/admin/reset-borrowings")
     @admin_required
     def admin_reset_borrowings():
-        Borrowing.query.delete()
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        Borrowing.query.filter_by(school_id=school_id).delete()
         db.session.commit()
-        flash("Semua riwayat peminjaman direset.", "info")
+        flash(f"Semua riwayat peminjaman {admin.school_name} direset.", "info")
         return redirect(url_for("admin_settings"))
 
     # ============= JSON API (for live countdown) =============
     @app.route("/api/active-borrowings")
     @admin_required
     def api_active_borrowings():
-        active = Borrowing.query.filter_by(status="active").all()
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        active = Borrowing.query.filter_by(school_id=school_id, status="active").all()
         result = []
         for b in active:
             result.append({
                 "id": b.id,
                 "tool_code": b.tool.code,
                 "tool_name": b.tool.name,
-                "student_name": b.student.name,
-                "student_nis": b.student.nis,
-                "student_class": b.student.class_name,
+                "student_name": b.student.name if b.student else (b.archived_student_name or "-"),
+                "student_nis": b.student.nis if b.student else (b.archived_student_nis or "-"),
+                "student_class": b.student.class_name if b.student else "-",
                 "elapsed_seconds": b.elapsed_seconds(),
                 "remaining_seconds": b.seconds_remaining(),
                 "deadline_iso": b.deadline.isoformat() + "Z",

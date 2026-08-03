@@ -13,7 +13,7 @@
 
         <div class="login-brand">
           <h1 class="login-heading">Masuk ke <em>LabKeeper</em></h1>
-          <p class="login-subheading">Pinjam Alat Lab Lebih Mudah</p>
+          <p class="login-subheading">Pilih peran dan masukan akun kamu</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -27,29 +27,40 @@
         <!-- Student Form -->
         <form id="studentForm" method="POST" action="/student/login" class="login-form">
           <input type="hidden" name="role" value="student">
+          
           <div class="form-group">
-            <label class="form-label">NIS (Nomor Induk Siswa)</label>
-            <input type="text" name="nis" class="form-input" placeholder="Masukkan NIS" required autofocus>
+            <label class="form-label">Asal Sekolah *</label>
+            <select name="school_id" class="form-input" required autofocus style="background:var(--paper);color:var(--ink);">
+              <option value="">— Pilih Asal Sekolah —</option>
+              {% for sch in schools %}
+                <option value="{{ sch.id }}">{{ sch.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">NIS (Nomor Induk Siswa) *</label>
+            <input type="text" name="nis" class="form-input" placeholder="Masukkan NIS" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Password</label>
+            <label class="form-label">Password *</label>
             <input type="password" name="password" class="form-input" placeholder="Masukkan password" required>
           </div>
-          <button type="submit" class="btn btn-primary btn-login-submit">Masuk sebagai Siswa</button>
+          <button type="submit" class="btn btn-primary btn-login-submit" style="font-weight:700;">Masuk sebagai Siswa</button>
         </form>
 
         <!-- Admin Form (hidden by default) -->
         <form id="adminForm" method="POST" action="/admin/login" class="login-form" style="display:none;">
           <input type="hidden" name="role" value="admin">
           <div class="form-group">
-            <label class="form-label">Username</label>
-            <input type="text" name="username" class="form-input" placeholder="Masukkan username" required autofocus>
+            <label class="form-label">Username Admin *</label>
+            <input type="text" name="username" class="form-input" placeholder="Masukkan username admin" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Password</label>
+            <label class="form-label">Password *</label>
             <input type="password" name="password" class="form-input" placeholder="Masukkan password" required>
           </div>
-          <button type="submit" class="btn btn-primary btn-login-submit">Masuk sebagai Admin</button>
+          <button type="submit" class="btn btn-primary btn-login-submit" style="font-weight:700;">Masuk Portal Sekolah</button>
         </form>
       </div>
     </div>
@@ -62,7 +73,7 @@
 
         <div class="role-cards">
           <button type="button" class="role-card active" data-role="student" onclick="switchRole('student')">
-            <div class="role-icon">S</div>
+            <div class="role-icon">🎓</div>
             <div class="role-info">
               <h3 class="role-name">Murid / Siswa</h3>
               <p class="role-desc">Pinjam dan kembalikan alat lab</p>
@@ -71,10 +82,10 @@
           </button>
 
           <button type="button" class="role-card" data-role="admin" onclick="switchRole('admin')">
-            <div class="role-icon">A</div>
+            <div class="role-icon">🏫</div>
             <div class="role-info">
-              <h3 class="role-name">Admin</h3>
-              <p class="role-desc">Kelola inventaris dan peminjaman</p>
+              <h3 class="role-name">Sekolah / Admin</h3>
+              <p class="role-desc">Kelola murid, alat, dan peminjaman</p>
             </div>
             <div class="role-check">✓</div>
           </button>

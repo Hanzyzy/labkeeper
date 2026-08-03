@@ -7,6 +7,7 @@ venv/
 .env
 nul
 agy_backups/
+ngrok_testing/
 static/css/*.bak*
 static/css/*.backup*
 static/css/*.before_*

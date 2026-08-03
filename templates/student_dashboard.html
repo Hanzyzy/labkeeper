@@ -30,9 +30,14 @@
           </span>
         {% endif %}
       </p>
-      <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
+      <div style="display:flex;gap:0.5rem;margin-top:1.25rem;flex-wrap:wrap;align-items:center;">
+        <form method="POST" action="/kembalikan/{{ active_borrowing.tool_code }}" style="margin:0;">
+          <input type="hidden" name="condition_after" value="Baik">
+          <button type="submit" class="btn btn-primary btn-sm" style="font-weight:700;" onclick="return confirm('Kembalikan {{ active_borrowing.tool_name }} sekarang?')">
+            ↩ Kembalikan Alat
+          </button>
+        </form>
         <a href="/tool/{{ active_borrowing.tool_code }}" class="btn btn-secondary btn-sm">Detail Alat</a>
-        <a href="/history" class="btn btn-secondary btn-sm">Lihat Riwayat</a>
       </div>
     </div>
   </div>

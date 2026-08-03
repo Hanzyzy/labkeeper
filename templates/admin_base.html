@@ -24,7 +24,13 @@
 
       <div class="admin-sidebar-header">
         <div class="admin-sidebar-brand"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="LabKeeper">LabKeeper</div>
-        <div class="admin-sidebar-user">Panel Admin</div>
+        <div class="admin-sidebar-user">
+          {% if current_admin and current_admin.school %}
+            {{ current_admin.school.name }}
+          {% else %}
+            Panel Admin Sekolah
+          {% endif %}
+        </div>
       </div>
 
       <nav class="admin-sidebar-nav" aria-label="Navigasi admin">

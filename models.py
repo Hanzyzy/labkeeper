@@ -1,4 +1,6 @@
-"""LabKeeper — Database Models (SQLAlchemy / SQLite)"""
+"""LabKeeper — Database Models (SQLAlchemy / SQLite)
+Supports Multi-School (Multi-Tenant) Architecture.
+"""
 from datetime import datetime, timedelta, timezone
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,9 +8,25 @@ from werkzeug.security import generate_password_hash, check_password_hash
 db = SQLAlchemy()
 
 
+class School(db.Model):
+    __tablename__ = "schools"
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(30), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(150), nullable=False)
+    address = db.Column(db.String(255))
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    students = db.relationship("Student", backref="school", lazy=True)
+    tools = db.relationship("Tool", backref="school", lazy=True)
+    admins = db.relationship("Admin", backref="school", lazy=True)
+    borrowings = db.relationship("Borrowing", backref="school", lazy=True)
+
+
 class Admin(db.Model):
     __tablename__ = "admins"
     id = db.Column(db.Integer, primary_key=True)
+    school_id = db.Column(db.Integer, db.ForeignKey("schools.id"), nullable=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     full_name = db.Column(db.String(100))
@@ -20,11 +38,16 @@ class Admin(db.Model):
     def check_password(self, raw: str) -> bool:
         return check_password_hash(self.password_hash, raw)
 
+    @property
+    def school_name(self):
+        return self.school.name if self.school else "SMK Telkom Bandung"
+
 
 class Student(db.Model):
     __tablename__ = "students"
     id = db.Column(db.Integer, primary_key=True)
-    nis = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    school_id = db.Column(db.Integer, db.ForeignKey("schools.id"), nullable=True)
+    nis = db.Column(db.String(20), nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
     class_name = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
@@ -40,11 +63,16 @@ class Student(db.Model):
     def check_password(self, raw: str) -> bool:
         return check_password_hash(self.password_hash, raw)
 
+    @property
+    def school_name(self):
+        return self.school.name if self.school else "SMK Telkom Bandung"
+
 
 class Tool(db.Model):
     __tablename__ = "tools"
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(30), unique=True, nullable=False, index=True)  # MTR-001
+    school_id = db.Column(db.Integer, db.ForeignKey("schools.id"), nullable=True)
+    code = db.Column(db.String(30), nullable=False, index=True)  # MTR-001
     name = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50))                                        # Multimeter, ESP32, dll
     lab_location = db.Column(db.String(50))                                    # Rak A3
@@ -63,11 +91,9 @@ class Tool(db.Model):
         """Public URL to this tool's QR code image."""
         if self.qr_path:
             from flask import url_for
-            # qr_path is like "static/qr_codes/ARD-01.png"
-            # url_for static needs the relative part after "static/"
             relative = self.qr_path.replace("\\", "/")
             if relative.startswith("static/"):
-                relative = relative[7:]  # remove "static/" prefix
+                relative = relative[7:]
             return url_for('static', filename=relative, _external=False)
         return None
 
@@ -86,13 +112,17 @@ class Tool(db.Model):
     def is_available(self) -> bool:
         return self.current_borrowing() is None and self.is_active
 
+    @property
+    def school_name(self):
+        return self.school.name if self.school else "SMK Telkom Bandung"
+
 
 class Borrowing(db.Model):
     __tablename__ = "borrowings"
     id = db.Column(db.Integer, primary_key=True)
+    school_id = db.Column(db.Integer, db.ForeignKey("schools.id"), nullable=True)
     tool_id = db.Column(db.Integer, db.ForeignKey("tools.id"), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=True)
-    # Snapshot info murid — diisi saat hapus Student, supaya history tetap punya identitas
     archived_student_name = db.Column(db.String(100))
     archived_student_nis = db.Column(db.String(20))
     borrow_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -101,12 +131,11 @@ class Borrowing(db.Model):
     status = db.Column(db.String(20), default="active")   # active / returned / overdue
     condition_after = db.Column(db.String(20))
     notes = db.Column(db.Text)
-    force_returned = db.Column(db.Boolean, default=False)   # if admin forced the return
-    extend_count = db.Column(db.Integer, default=0)         # jumlah kali diperpanjang
+    force_returned = db.Column(db.Boolean, default=False)
+    extend_count = db.Column(db.Integer, default=0)
 
     @property
     def student_name(self):
-        # Pakai nama live kalau murid masih ada, fallback ke snapshot kalau sudah dihapus
         return self.student.name if self.student else (self.archived_student_name or "(murid dihapus)")
 
     @property
@@ -139,7 +168,6 @@ class Borrowing(db.Model):
         return cfg.loan_duration_hours if cfg else 2
 
     def seconds_remaining(self) -> int:
-        """Positive = time left, negative = overdue (in seconds)."""
         delta = self.deadline - datetime.now(timezone.utc).replace(tzinfo=None)
         return int(delta.total_seconds())
 
@@ -156,7 +184,7 @@ class Config(db.Model):
     __tablename__ = "config"
     id = db.Column(db.Integer, primary_key=True)
     loan_duration_hours = db.Column(db.Integer, default=2)
-    school_name = db.Column(db.String(100), default="SMK Telkom")
+    school_name = db.Column(db.String(100), default="SMK Telkom Bandung")
     base_url = db.Column(db.String(200), default="http://localhost:5000")
 
     @classmethod
@@ -165,11 +193,29 @@ class Config(db.Model):
 
 
 def init_db(app):
-    """Create tables and seed the singleton Config row if missing."""
+    """Create tables and seed initial default schools if missing."""
     db.init_app(app)
     with app.app_context():
         db.create_all()
+        
+        # Seed default schools if empty
+        if School.query.count() == 0:
+            default_schools = [
+                School(id=1, code="TELKOM-BDG", name="SMK Telkom Bandung", address="Jl. Terusan Buah Batu No. 33"),
+                School(id=2, code="SMKN1-JKT", name="SMK Negeri 1 Jakarta", address="Jl. Budi Utomo No. 7"),
+                School(id=3, code="SMAN3-SBY", name="SMA Negeri 3 Surabaya", address="Jl. Memet Sastrawidjaja"),
+            ]
+            db.session.add_all(default_schools)
+            db.session.commit()
+
         if Config.get_solo() is None:
-            db.session.add(Config(id=1, loan_duration_hours=2, school_name="SMK Telkom",
+            db.session.add(Config(id=1, loan_duration_hours=2, school_name="SMK Telkom Bandung",
                                   base_url="http://localhost:5000"))
             db.session.commit()
+
+        # Update existing null school_ids to default school (id=1)
+        Admin.query.filter(Admin.school_id == None).update({Admin.school_id: 1})
+        Student.query.filter(Student.school_id == None).update({Student.school_id: 1})
+        Tool.query.filter(Tool.school_id == None).update({Tool.school_id: 1})
+        Borrowing.query.filter(Borrowing.school_id == None).update({Borrowing.school_id: 1})
+        db.session.commit()
