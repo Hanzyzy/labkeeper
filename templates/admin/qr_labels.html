@@ -11,9 +11,9 @@
       <h1 class="page-title" style="margin-top:0.375rem;margin-bottom:0;">Cetak & Label QR Code</h1>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <a href="/admin/generate-all-qr" class="btn btn-secondary btn-sm">🔄 Refresh QR</a>
+      <a href="/admin/generate-all-qr" class="btn btn-secondary btn-sm">Refresh QR</a>
       <button type="button" onclick="printAllQR()" class="btn btn-secondary" style="font-weight:700;font-size:13px;padding:8px 16px;">
-        🖨️ Cetak Semua QR
+        Cetak Semua QR
       </button>
     </div>
   </div>
@@ -23,10 +23,10 @@
   <div class="no-print" style="margin-bottom:1.5rem;width:100%;background:var(--paper);border:1px solid var(--line);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
     <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
       <button type="button" onclick="selectAllQR(true)" class="btn btn-secondary btn-sm" style="font-weight:700;">
-        ☑ Pilih Semua Alat
+        Pilih Semua Alat
       </button>
       <button type="button" onclick="selectAllQR(false)" class="btn btn-secondary btn-sm">
-        ☐ Batal Semua Pilihan
+        Batal Semua Pilihan
       </button>
       <span style="font-size:0.875rem;color:var(--ink-2);margin-left:0.5rem;">
         Terpilih: <strong id="selectedCount" style="color:var(--ink);font-size:1.1rem;font-weight:800;">0</strong> dari {{ tools|length }} alat
@@ -35,14 +35,11 @@
     
     <div>
       <button type="button" onclick="printSelectedQR()" id="btnPrintSelected" class="btn btn-primary" style="padding:8px 20px;font-weight:700;opacity:0.6;pointer-events:none;">
-        🖨️ Cetak QR Terpilih (<span id="btnPrintCount">0</span>)
+        Cetak QR Terpilih (<span id="btnPrintCount">0</span>)
       </button>
     </div>
   </div>
-  {% endif %}
 
-  <!-- QR Grid -->
-  {% if tools %}
   <div class="bento-grid" id="qrLabelGrid" style="grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));width:100%;gap:16px;">
     {% for tool in tools %}
     <div class="qr-label" id="qr-card-{{ tool.code }}" data-tool-code="{{ tool.code }}">
@@ -67,7 +64,7 @@
           
           <div class="no-print" style="display:flex;gap:0.375rem;margin-top:auto;width:100%;">
             {% if tool.qr_url %}
-              <a href="{{ tool.qr_url }}" download="QR_{{ tool.code }}.png" class="btn btn-sm btn-secondary" style="width:100%;font-size:0.6875rem;justify-content:center;padding:5px 8px;">📥 Unduh PNG</a>
+              <a href="{{ tool.qr_url }}" download="QR_{{ tool.code }}.png" class="btn btn-sm btn-secondary" style="width:100%;font-size:0.6875rem;justify-content:center;padding:5px 8px;">Unduh PNG</a>
             {% endif %}
           </div>
         </div>
@@ -78,7 +75,7 @@
 
   {% else %}
   <div class="empty-state">
-    <div class="empty-state-icon">📱</div>
+    <div class="empty-state-icon">◇</div>
     <div class="empty-state-text">Belum ada alat untuk di-generate QR-nya.</div>
   </div>
   {% endif %}

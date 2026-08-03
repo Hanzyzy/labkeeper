@@ -8,7 +8,15 @@ def current_student() -> Student | None:
     sid = session.get("student_id")
     if sid is None:
         return None
-    return Student.query.get(sid)
+    s = Student.query.get(sid)
+    if s is None or not s.is_active:
+        return None
+    # Multi-device session invalidation check
+    stored_pv = session.get("student_password_version")
+    if stored_pv is not None and stored_pv != (getattr(s, "password_version", 1) or 1):
+        session.clear()
+        return None
+    return s
 
 
 def current_admin() -> Admin | None:

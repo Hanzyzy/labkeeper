@@ -155,6 +155,7 @@ def create_app() -> Flask:
                 session.permanent = True
                 session["student_id"] = student.id
                 session["school_id"] = student.school_id
+                session["student_password_version"] = student.password_version or 1
                 flash(f"Selamat datang, {student.name} ({student.school_name})!", "success")
                 return redirect(request.form.get("next") or nxt)
             else:
@@ -214,6 +215,8 @@ def create_app() -> Flask:
     def student_profile():
         student = current_student()
         if request.method == "POST":
+            password_changed = False
+
             # 1. Password Update
             old_password = request.form.get("old_password", "")
             new_password = request.form.get("new_password", "")
@@ -231,7 +234,8 @@ def create_app() -> Flask:
                     return redirect(url_for("student_profile"))
                 
                 student.set_password(new_password)
-                flash("Password Anda berhasil diperbarui!", "success")
+                student.password_version = (student.password_version or 1) + 1
+                password_changed = True
 
             # 2. Profile Photo Avatar Upload
             if "avatar" in request.files:
@@ -244,11 +248,18 @@ def create_app() -> Flask:
                         filepath = os.path.join("static/uploads/avatars", filename)
                         file.save(filepath)
                         student.avatar_path = filepath
-                        flash("Foto profil berhasil diperbarui!", "success")
+                        if not password_changed:
+                            flash("Foto profil berhasil diperbarui!", "success")
                     else:
                         flash("Format foto harus JPG, PNG, WEBP, atau GIF.", "error")
 
             db.session.commit()
+
+            if password_changed:
+                session.clear()
+                flash("Password berhasil diperbarui! Demi keamanan, semua sesi login di seluruh perangkat telah di-logout. Silakan login kembali dengan password baru Anda.", "info")
+                return redirect(url_for("student_login"))
+
             return redirect(url_for("student_profile"))
 
         return render_template("student_profile.html", student=student)

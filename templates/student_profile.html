@@ -37,7 +37,7 @@
               <img id="avatarPreviewImg" src="{{ student.avatar_url }}" alt="{{ student.name }}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ink);box-shadow:0 6px 20px rgba(0,0,0,0.1);">
             {% else %}
               <div id="avatarFallback" style="width:96px;height:96px;border-radius:50%;background:#000000;color:#ffffff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:2.25rem;border:3px solid var(--ink);box-shadow:0 6px 20px rgba(0,0,0,0.1);">
-                {{ student.name[0] if student.name else '?' }}
+                {{ student.name[0].upper() if student.name else '?' }}
               </div>
               <img id="avatarPreviewImg" src="" alt="Preview" style="display:none;width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ink);box-shadow:0 6px 20px rgba(0,0,0,0.1);">
             {% endif %}
@@ -46,7 +46,8 @@
           <!-- Upload Input Controls -->
           <div style="flex:1;min-width:220px;">
             <label for="avatarInput" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:0.5rem;">
-              📷 Unggah Foto Baru
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              Unggah Foto Baru
             </label>
             <input type="file" id="avatarInput" name="avatar" accept="image/*" onchange="previewAvatar(this)" style="display:none;">
             <p style="font-size:0.75rem;color:var(--muted);margin:0;line-height:1.4;">
@@ -67,8 +68,9 @@
           <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.25rem;margin:0;color:var(--ink);">
             Informasi Terdaftar (Terkunci)
           </h3>
-          <span style="font-size:0.75rem;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-weight:600;">
-            🔒 Kontak Admin untuk Ubah Identitas
+          <span style="font-size:0.75rem;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Kontak Admin untuk Ubah Identitas
           </span>
         </div>
 
@@ -140,8 +142,9 @@
 
     <!-- Submit Action -->
     <div class="reveal reveal-delay-3" style="display:flex;justify-content:end;">
-      <button type="submit" class="btn btn-primary" style="font-weight:700;padding:12px 28px;border-radius:12px;background:#000000;color:#ffffff;font-size:0.9375rem;">
-        💾 Simpan Perubahan Profil
+      <button type="submit" class="btn btn-primary" style="font-weight:700;padding:12px 28px;border-radius:12px;background:#000000;color:#ffffff;font-size:0.9375rem;display:inline-flex;align-items:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        Simpan Perubahan Profil
       </button>
     </div>
 

@@ -19,8 +19,10 @@
         <option value="returned" {% if status_filter == 'returned' %}selected{% endif %}>Dikembalikan</option>
         <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Telat</option>
       </select>
-      <button type="submit" class="filter-btn">Filter</button>
-      <a href="/admin/borrowings/export-csv?search={{ search or '' }}&status_filter={{ status_filter or '' }}" class="btn btn-secondary" style="font-size:13px;padding:8px 16px;margin-left:auto;font-weight:600;">📊 Export Excel (.xlsx)</a>
+      <a href="/admin/borrowings/export-csv?search={{ search or '' }}&status_filter={{ status_filter or '' }}" class="btn btn-secondary" style="font-size:13px;padding:8px 16px;margin-left:auto;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        Export Excel (.xlsx)
+      </a>
     </div>
   </form>
 

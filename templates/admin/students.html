@@ -19,7 +19,7 @@
     <div class="reveal filter-bar" style="margin-bottom:1.5rem;">
       <form method="GET" action="/admin/students" style="display:flex;gap:0.75rem;flex:1;flex-wrap:wrap;align-items:center;">
         <div class="filter-search" style="flex:1;min-width:220px;">
-          <input type="text" name="search" class="form-input" placeholder="🔍 Cari nama, NIS, atau kelas..." value="{{ search or '' }}" style="width:100%;padding:10px 14px;border-radius:10px;">
+          <input type="text" name="search" class="form-input" placeholder="Cari nama, NIS, atau kelas..." value="{{ search or '' }}" style="width:100%;padding:10px 14px;border-radius:10px;">
         </div>
         <div style="min-width:160px;">
           <select name="status_filter" class="form-input" style="padding:10px 14px;border-radius:10px;">
@@ -111,8 +111,9 @@
             <button type="submit" onclick="submitBulkAction('deactivate')" class="bulk-bar-btn" style="background:#EAB308;color:#000000;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;">
               ✕ Nonaktifkan
             </button>
-            <button type="button" onclick="openBulkDeleteModal()" class="bulk-bar-btn danger" style="background:#DC2626;color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;">
-              🗑️ Hapus Permanen
+            <button type="button" onclick="openBulkDeleteModal()" class="bulk-bar-btn danger" style="background:#DC2626;color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              Hapus Permanen
             </button>
             <button type="button" class="bulk-bar-btn cancel" onclick="clearBulkSelection('bulkStudentsForm', 'bulkStudentsBar')" style="background:rgba(255,255,255,0.15);color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;cursor:pointer;">
               Batal
@@ -141,8 +142,8 @@
 <div id="customDeleteModal" class="custom-modal-backdrop" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,10,0.6);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1.5rem;">
   <div class="custom-modal-card" style="background:var(--paper);border:1px solid var(--line);border-radius:1.5rem;width:100%;max-width:440px;padding:2rem;box-shadow:0 20px 50px rgba(0,0,0,0.15);text-align:center;animation:modalPop 0.25s cubic-bezier(0.16,1,0.3,1);">
     
-    <div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;color:#DC2626;display:flex;align-items:center;justify-content:center;font-size:1.75rem;margin:0 auto 1.25rem;">
-      ⚠️
+    <div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;color:#DC2626;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
     </div>
 
     <h2 style="font-family:var(--font-display);font-weight:800;font-size:1.375rem;margin:0 0 0.5rem;color:var(--ink);">

@@ -51,6 +51,7 @@ class Student(db.Model):
     name = db.Column(db.String(100), nullable=False)
     class_name = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    password_version = db.Column(db.Integer, default=1, nullable=False)
     phone = db.Column(db.String(20))
     avatar_path = db.Column(db.String(255))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
