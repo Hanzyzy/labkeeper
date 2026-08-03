@@ -8,132 +8,199 @@
   <div class="reveal" style="margin-bottom:1.5rem;display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:1.5rem;">
     <div>
       <span class="eyebrow-tag">Manajemen</span>
-      <h1 class="page-title" style="margin-top:0.375rem;margin-bottom:0;">Kelola Siswa</h1>
+      <h1 class="page-title" style="margin-top:0.375rem;margin-bottom:0;">Kelola Siswa — {{ admin.school_name }}</h1>
     </div>
-    <a href="/admin/students?action=add" class="btn btn-primary">+ Tambah Siswa</a>
+    <a href="/admin/students?action=add" class="btn btn-primary" style="font-weight:700;border-radius:10px;background:#000000;color:#ffffff;">+ Tambah Siswa Baru</a>
   </div>
 
   <div class="students-container">
 
     <!-- Filter Bar -->
-    <div class="reveal filter-bar">
+    <div class="reveal filter-bar" style="margin-bottom:1.5rem;">
       <form method="GET" action="/admin/students" style="display:flex;gap:0.75rem;flex:1;flex-wrap:wrap;align-items:center;">
-        <div class="filter-search" style="flex:1;min-width:200px;">
-          <input type="text" name="search" class="form-input" placeholder="Cari siswa..." value="{{ search or '' }}" style="width:100%;">
+        <div class="filter-search" style="flex:1;min-width:220px;">
+          <input type="text" name="search" class="form-input" placeholder="🔍 Cari nama, NIS, atau kelas..." value="{{ search or '' }}" style="width:100%;padding:10px 14px;border-radius:10px;">
         </div>
-        <button type="submit" class="filter-btn">Filter</button>
+        <div style="min-width:160px;">
+          <select name="status_filter" class="form-input" style="padding:10px 14px;border-radius:10px;">
+            <option value="" {% if not status_filter %}selected{% endif %}>Semua Status</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Status: Aktif</option>
+            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Status: Nonaktif</option>
+          </select>
+        </div>
+        <button type="submit" class="filter-btn" style="padding:10px 18px;border-radius:10px;font-weight:600;">Filter</button>
       </form>
     </div>
 
     {% if students %}
     <form id="bulkStudentsForm" method="POST" action="/admin/students/bulk-action">
-      <div class="students-list">
+      <!-- Hidden input to store action when submitted via modal -->
+      <input type="hidden" name="_action" id="bulkActionInput" value="">
+
+      <div class="students-list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1.25rem;">
         {% for s in students %}
-        <div class="student-card reveal" data-student-card style="transition-delay: {{ loop.index0 * 0.04 }}s;">
-          <div class="card-top-row">
-            <label class="bulk-checkbox-wrapper">
-              <input type="checkbox" name="nis" value="{{ s.nis }}" data-bulk-checkbox>
-              <span class="bulk-check-visual"></span>
-            </label>
-            <div class="card-student-info">
-              <div class="card-avatar">{{ s.name[0] if s.name else '?' }}</div>
+        <div class="student-card reveal {% if not s.is_active %}inactive-card{% endif %}" data-student-card style="transition-delay: {{ loop.index0 * 0.03 }}s;background:var(--paper);border:1px solid var(--line);border-radius:1rem;padding:1.25rem;">
+          
+          <div class="card-top-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <label class="bulk-checkbox-wrapper" style="margin:0;cursor:pointer;">
+                <input type="checkbox" name="nis" value="{{ s.nis }}" data-bulk-checkbox style="width:18px;height:18px;cursor:pointer;">
+              </label>
+              <div class="card-avatar" style="width:38px;height:38px;border-radius:50%;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.125rem;">
+                {{ s.name[0] if s.name else '?' }}
+              </div>
               <div>
-                <h3 class="card-name">{{ s.name }}</h3>
-                <p class="card-nis">NIS: {{ s.nis }}</p>
+                <h3 class="card-name" style="font-size:1rem;font-weight:700;margin:0;color:var(--ink);">{{ s.name }}</h3>
+                <p class="card-nis" style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);margin:2px 0 0;">NIS: {{ s.nis }}</p>
               </div>
             </div>
-            <div class="card-actions">
-              <a href="/admin/students?action=edit&nis={{ s.nis }}" class="btn-icon" title="Edit" aria-label="Edit">✎</a>
-              <form action="/admin/students/action?action=delete&nis={{ s.nis }}" method="POST" style="display:inline;" onsubmit="return confirm('Yakin hapus siswa ini?')">
-                <input type="hidden" name="_action" value="delete">
-                <input type="hidden" name="nis" value="{{ s.nis }}">
-                <button type="submit" class="btn-icon" title="Hapus" aria-label="Hapus">×</button>
-              </form>
+
+            <div class="card-actions" style="display:flex;gap:6px;">
+              <a href="/admin/students?action=edit&nis={{ s.nis }}" class="btn-icon" title="Edit Siswa" style="padding:6px;border-radius:6px;border:1px solid var(--line);font-size:0.875rem;">✎</a>
+              <button type="button" class="btn-icon danger" title="Hapus Permanen" onclick="openSingleDeleteModal('{{ s.nis }}', '{{ s.name }}')" style="padding:6px;border-radius:6px;border:1px solid var(--line);font-size:0.875rem;color:#DC2626;">×</button>
             </div>
           </div>
 
-          <div class="card-meta">
+          <div class="card-meta" style="display:flex;justify-content:space-between;padding:0.75rem 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:0.75rem;font-size:0.8125rem;">
             <div class="meta-item">
-              <span class="meta-label">Kelas</span>
-              <span>{{ s.class_name }}</span>
+              <span class="meta-label" style="color:var(--muted);display:block;font-size:0.6875rem;text-transform:uppercase;">Kelas</span>
+              <strong style="color:var(--ink);">{{ s.class_name }}</strong>
             </div>
-            <div class="meta-item">
-              <span class="meta-label">Peminjaman Aktif</span>
-              <span>{{ s.active_borrowings_count }}</span>
+            <div class="meta-item" style="text-align:right;">
+              <span class="meta-label" style="color:var(--muted);display:block;font-size:0.6875rem;text-transform:uppercase;">Pinjaman Aktif</span>
+              <strong style="color:var(--ink);">{{ s.active_borrowings_count }} Alat</strong>
             </div>
           </div>
 
-          <div class="card-footer">
-            <span class="status-badge {{ 'borrowed' if s.active_borrowings_count > 0 else 'available' }}">
-              <span class="badge-dot"></span>
-              {{ 'Sedang Meminjam' if s.active_borrowings_count > 0 else 'Tersedia' }}
-            </span>
+          <div class="card-footer" style="display:flex;align-items:center;justify-content:space-between;">
+            <!-- Status Active / Inactive Badge -->
+            {% if s.is_active %}
+              <span class="status-badge available" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;font-weight:700;">
+                ✓ Akun Aktif
+              </span>
+            {% else %}
+              <span class="status-badge borrowed" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;font-weight:700;">
+                ✕ Nonaktif
+              </span>
+            {% endif %}
+
+            {% if s.active_borrowings_count > 0 %}
+              <span style="font-size:0.6875rem;color:#1D4ED8;font-weight:600;">Meminjam Alat</span>
+            {% endif %}
           </div>
+
         </div>
         {% endfor %}
       </div>
 
       <!-- Bulk Action Bar -->
-      <div class="bulk-bar hidden" id="bulkStudentsBar">
-        <div class="bulk-bar-inner">
-          <div class="bulk-bar-info">
-            <span class="bulk-bar-counter" id="bulkStudentsCount">0</span>
+      <div class="bulk-bar hidden" id="bulkStudentsBar" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;width:calc(100% - 48px);max-width:680px;background:#0A0A0A;color:#FFFFFF;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.25);padding:14px 20px;">
+        <div class="bulk-bar-inner" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <div class="bulk-bar-info" style="display:flex;align-items:center;gap:8px;font-size:0.875rem;font-weight:600;">
+            <span class="bulk-bar-counter" id="bulkStudentsCount" style="background:#FFFFFF;color:#000000;padding:2px 8px;border-radius:999px;font-family:var(--font-mono);font-size:0.8125rem;">0</span>
             <span>siswa dipilih</span>
           </div>
-          <div class="bulk-bar-actions">
-            <button type="submit" name="_action" value="activate" class="bulk-bar-btn">Aktifkan</button>
-            <button type="submit" name="_action" value="deactivate" class="bulk-bar-btn">Nonaktifkan</button>
-            <button type="submit" name="_action" value="delete" class="bulk-bar-btn danger" onclick="return confirm('Hapus permanen siswa yang dipilih? Histori peminjaman tetap tersimpan.')">Hapus Permanen</button>
-            <button type="button" class="bulk-bar-btn cancel" onclick="clearBulkSelection('bulkStudentsForm', 'bulkStudentsBar')">Batal</button>
+          <div class="bulk-bar-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button type="submit" onclick="submitBulkAction('activate')" class="bulk-bar-btn" style="background:#16A34A;color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;">
+              ✓ Aktifkan
+            </button>
+            <button type="submit" onclick="submitBulkAction('deactivate')" class="bulk-bar-btn" style="background:#EAB308;color:#000000;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;">
+              ✕ Nonaktifkan
+            </button>
+            <button type="button" onclick="openBulkDeleteModal()" class="bulk-bar-btn danger" style="background:#DC2626;color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;">
+              🗑️ Hapus Permanen
+            </button>
+            <button type="button" class="bulk-bar-btn cancel" onclick="clearBulkSelection('bulkStudentsForm', 'bulkStudentsBar')" style="background:rgba(255,255,255,0.15);color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;cursor:pointer;">
+              Batal
+            </button>
           </div>
         </div>
       </div>
     </form>
     {% else %}
-    <div class="empty-state reveal">
-      <div class="empty-state-icon">○</div>
-      <div class="empty-state-text">Belum ada siswa terdaftar.</div>
+    <div class="empty-state reveal" style="text-align:center;padding:3.5rem 1.5rem;background:var(--paper);border:1px solid var(--line);border-radius:1rem;">
+      <div class="empty-state-icon" style="font-size:2.5rem;margin-bottom:0.75rem;">○</div>
+      <div class="empty-state-text" style="font-size:1rem;color:var(--ink-2);">Belum ada siswa yang cocok dengan filter.</div>
     </div>
     {% endif %}
 
   </div>
 </div>
 
+<!-- Single Delete Form (Hidden) -->
+<form id="singleDeleteForm" method="POST" action="/admin/students/action" style="display:none;">
+  <input type="hidden" name="_action" value="delete">
+  <input type="hidden" name="nis" id="singleDeleteNis" value="">
+</form>
+
+<!-- Custom Modal Alert for Delete Confirmation -->
+<div id="customDeleteModal" class="custom-modal-backdrop" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,10,0.6);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1.5rem;">
+  <div class="custom-modal-card" style="background:var(--paper);border:1px solid var(--line);border-radius:1.5rem;width:100%;max-width:440px;padding:2rem;box-shadow:0 20px 50px rgba(0,0,0,0.15);text-align:center;animation:modalPop 0.25s cubic-bezier(0.16,1,0.3,1);">
+    
+    <div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;color:#DC2626;display:flex;align-items:center;justify-content:center;font-size:1.75rem;margin:0 auto 1.25rem;">
+      ⚠️
+    </div>
+
+    <h2 style="font-family:var(--font-display);font-weight:800;font-size:1.375rem;margin:0 0 0.5rem;color:var(--ink);">
+      Hapus Permanen Siswa?
+    </h2>
+
+    <p id="customDeleteMessage" style="font-size:0.875rem;color:var(--ink-2);line-height:1.6;margin-bottom:1.75rem;">
+      Apakah Anda yakin ingin menghapus permanen data siswa yang dipilih? Akun siswa akan dihapus, namun <strong>histori peminjaman tetap tersimpan rapi</strong>.
+    </p>
+
+    <div style="display:flex;gap:0.75rem;justify-content:center;">
+      <button type="button" onclick="closeCustomDeleteModal()" class="btn btn-secondary" style="flex:1;padding:12px;border-radius:10px;font-weight:600;">
+        Batal
+      </button>
+      <button type="button" id="confirmDeleteBtn" onclick="executeDeleteAction()" class="btn btn-primary" style="flex:1;padding:12px;border-radius:10px;font-weight:700;background:#DC2626;color:#ffffff;border:0;">
+        Ya, Hapus Permanen
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.bulk-bar.hidden { display: none !important; }
+</style>
+
 {% endblock %}
+
 {% block scripts %}
 <script>
+let deleteMode = 'bulk'; // 'bulk' or 'single'
+
 (function() {
   const form = document.getElementById('bulkStudentsForm');
   const bar = document.getElementById('bulkStudentsBar');
   const counter = document.getElementById('bulkStudentsCount');
   if (!form || !bar || !counter) return;
 
-  let lastCount = 0;
-
   function updateBar() {
     const checked = form.querySelectorAll('[data-bulk-checkbox]:checked');
     const n = checked.length;
     counter.textContent = n;
 
-    if (n === 0 && !bar.classList.contains('hidden')) {
-      bar.classList.remove('visible');
-      setTimeout(() => bar.classList.add('hidden'), 450);
-    } else if (n > 0) {
+    if (n === 0) {
+      bar.classList.add('hidden');
+    } else {
       bar.classList.remove('hidden');
-      void bar.offsetWidth;
-      requestAnimationFrame(() => bar.classList.add('visible'));
-    }
-
-    if (n !== lastCount) {
-      counter.classList.remove('bump');
-      void counter.offsetWidth;
-      counter.classList.add('bump');
-      lastCount = n;
     }
 
     form.querySelectorAll('[data-student-card]').forEach(card => {
       const cb = card.querySelector('[data-bulk-checkbox]');
-      card.classList.toggle('selected', cb && cb.checked);
+      if (cb && cb.checked) {
+        card.style.borderColor = 'var(--ink)';
+        card.style.background = 'var(--surface-3)';
+      } else {
+        card.style.borderColor = 'var(--line)';
+        card.style.background = 'var(--paper)';
+      }
     });
   }
 
@@ -142,6 +209,45 @@
   });
   updateBar();
 })();
+
+function submitBulkAction(actionName) {
+  document.getElementById('bulkActionInput').value = actionName;
+}
+
+function openBulkDeleteModal() {
+  const checked = document.querySelectorAll('#bulkStudentsForm [data-bulk-checkbox]:checked');
+  const count = checked.length;
+  if (count === 0) {
+    alert('Pilih minimal 1 siswa terlebih dahulu.');
+    return;
+  }
+  deleteMode = 'bulk';
+  document.getElementById('customDeleteMessage').innerHTML = 
+    `Apakah Anda yakin ingin menghapus permanen <strong>${count} siswa</strong> yang dipilih? Akun siswa akan dihapus dari sistem, namun <strong>histori peminjaman tetap tersimpan rapi</strong>.`;
+  document.getElementById('customDeleteModal').style.display = 'flex';
+}
+
+function openSingleDeleteModal(nis, name) {
+  deleteMode = 'single';
+  document.getElementById('singleDeleteNis').value = nis;
+  document.getElementById('customDeleteMessage').innerHTML = 
+    `Apakah Anda yakin ingin menghapus permanen siswa <strong>${name} (NIS: ${nis})</strong>? Histori peminjaman siswa ini tetap tersimpan rapi.`;
+  document.getElementById('customDeleteModal').style.display = 'flex';
+}
+
+function closeCustomDeleteModal() {
+  document.getElementById('customDeleteModal').style.display = 'none';
+}
+
+function executeDeleteAction() {
+  closeCustomDeleteModal();
+  if (deleteMode === 'bulk') {
+    document.getElementById('bulkActionInput').value = 'delete';
+    document.getElementById('bulkStudentsForm').submit();
+  } else if (deleteMode === 'single') {
+    document.getElementById('singleDeleteForm').submit();
+  }
+}
 
 function clearBulkSelection(formId, barId) {
   const form = document.getElementById(formId);

@@ -804,6 +804,7 @@ def create_app() -> Flask:
         admin = current_admin()
         school_id = admin.school_id or 1
         search = request.args.get("search", "").strip()
+        status_filter = request.args.get("status_filter", "").strip()
         action = request.args.get("action", "")
         
         if action == "add":
@@ -814,7 +815,12 @@ def create_app() -> Flask:
             student = Student.query.filter_by(nis=nis, school_id=school_id).first_or_404()
             return render_template("admin/student_form.html", student=student, admin=admin)
         
-        query = Student.query.filter_by(is_active=True, school_id=school_id)
+        query = Student.query.filter_by(school_id=school_id)
+        if status_filter == "active":
+            query = query.filter_by(is_active=True)
+        elif status_filter == "inactive":
+            query = query.filter_by(is_active=False)
+
         if search:
             query = query.filter(
                 db.or_(
@@ -828,7 +834,7 @@ def create_app() -> Flask:
             s.active_borrowings_count = Borrowing.query.filter_by(
                 student_id=s.id, status='active'
             ).count()
-        return render_template("admin/students.html", students=students, search=search, admin=admin)
+        return render_template("admin/students.html", students=students, search=search, status_filter=status_filter, admin=admin)
 
     @app.route("/admin/students/action", methods=["POST"])
     @admin_required
