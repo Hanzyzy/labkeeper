@@ -68,33 +68,21 @@ def create_app() -> Flask:
     # ============= PUBLIC ROUTES (no login) =============
     @app.route("/")
     def index():
-        schools = School.query.filter_by(is_active=True).order_by(School.name).all()
         c_student = current_student()
-        
-        # Determine selected school
-        school_id_param = request.args.get("school_id")
-        if school_id_param and school_id_param.isdigit():
-            selected_school_id = int(school_id_param)
-            session["selected_school_id"] = selected_school_id
-        elif c_student and c_student.school_id:
-            selected_school_id = c_student.school_id
-        elif session.get("selected_school_id"):
-            selected_school_id = int(session.get("selected_school_id"))
-        else:
-            selected_school_id = schools[0].id if schools else 1
+        c_admin = current_admin()
+        if c_student:
+            return redirect(url_for("student_dashboard"))
+        if c_admin:
+            return redirect(url_for("admin_dashboard"))
 
+        schools = School.query.filter_by(is_active=True).order_by(School.name).all()
+        selected_school_id = schools[0].id if schools else 1
         selected_school = School.query.get(selected_school_id) or (schools[0] if schools else None)
 
-        # Scoped tools query
-        tools_query = Tool.query.filter_by(is_active=True)
-        if selected_school_id:
-            tools_query = tools_query.filter_by(school_id=selected_school_id)
-        
-        tools = tools_query.order_by(Tool.code).all()
+        tools = Tool.query.filter_by(is_active=True, school_id=selected_school_id).order_by(Tool.code).all()
         total_alat = len(tools)
         tersedia = sum(1 for t in tools if t.is_available())
         dipinjam = sum(1 for t in tools if not t.is_available())
-        telat = sum(1 for t in tools if not t.is_available() and t.current_borrowing() and t.current_borrowing().is_overdue())
         categories = sorted(list(set(t.category for t in tools if t.category)))
         
         return render_template(
@@ -103,7 +91,6 @@ def create_app() -> Flask:
             total_alat=total_alat, 
             tersedia=tersedia, 
             dipinjam=dipinjam, 
-            telat=telat, 
             categories=categories, 
             schools=schools,
             selected_school_id=selected_school_id,
@@ -179,6 +166,15 @@ def create_app() -> Flask:
     @student_required
     def student_dashboard():
         student = current_student()
+        school_id = student.school_id or 1
+        
+        # Scoped tools catalog query for this student's school
+        tools = Tool.query.filter_by(school_id=school_id, is_active=True).order_by(Tool.code).all()
+        total_alat = len(tools)
+        tersedia = sum(1 for t in tools if t.is_available())
+        dipinjam = sum(1 for t in tools if not t.is_available())
+        categories = sorted(list(set(t.category for t in tools if t.category)))
+
         active = Borrowing.query.filter_by(
             student_id=student.id, status="active"
         ).order_by(Borrowing.borrow_date.desc()).all()
@@ -192,6 +188,11 @@ def create_app() -> Flask:
             student=student,
             active_borrowing=active_borrowing,
             past=past,
+            tools=tools,
+            total_alat=total_alat,
+            tersedia=tersedia,
+            dipinjam=dipinjam,
+            categories=categories,
             base_url=get_config().base_url
         )
 
