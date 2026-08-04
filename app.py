@@ -990,6 +990,101 @@ def create_app() -> Flask:
             flash(f"{len(students)} siswa dihapus permanen. Histori peminjaman tetap tersimpan.", "info")
         return redirect(url_for("admin_students"))
 
+    @app.route("/admin/students/export-excel")
+    @admin_required
+    def admin_students_export_excel():
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        search = request.args.get("search", "").strip()
+        status_filter = request.args.get("status_filter", "").strip()
+
+        query = Student.query.filter_by(school_id=school_id)
+        if status_filter == "active":
+            query = query.filter_by(is_active=True)
+        elif status_filter == "inactive":
+            query = query.filter_by(is_active=False)
+        
+        if search:
+            query = query.filter(
+                Student.name.ilike(f"%{search}%") | 
+                Student.nis.ilike(f"%{search}%") | 
+                Student.class_name.ilike(f"%{search}%")
+            )
+        
+        students = query.order_by(Student.class_name, Student.nis).all()
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Daftar Siswa"
+
+        ws.merge_cells("A1:E1")
+        title_cell = ws["A1"]
+        title_cell.value = f"DAFTAR REKAPITULASI SISWA TERDAFTAR — {admin.school_name.upper()}"
+        title_cell.font = Font(name="Segoe UI", size=13, bold=True, color="FFFFFF")
+        title_cell.fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+        title_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[1].height = 32
+
+        now_str = utcnow().strftime("%d/%m/%Y %H:%M WIB")
+        ws.merge_cells("A2:E2")
+        sub_cell = ws["A2"]
+        sub_cell.value = f"Dicetak pada: {now_str}  |  Total Siswa: {len(students)}"
+        sub_cell.font = Font(name="Segoe UI", size=9, italic=True, color="475569")
+        sub_cell.fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+        sub_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[2].height = 22
+
+        ws.row_dimensions[3].height = 6
+
+        headers = ["No", "NIS", "Nama Lengkap Siswa", "Kelas", "Status Akun"]
+        ws.row_dimensions[4].height = 26
+        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        header_font = Font(name="Segoe UI", size=11, bold=True, color="F8FAFC")
+        thin_border = Border(
+            left=Side(style='thin', color='CBD5E1'),
+            right=Side(style='thin', color='CBD5E1'),
+            top=Side(style='thin', color='CBD5E1'),
+            bottom=Side(style='thin', color='CBD5E1')
+        )
+
+        for col_idx, text in enumerate(headers, 1):
+            cell = ws.cell(row=4, column=col_idx, value=text)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
+
+        row_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+        data_font = Font(name="Segoe UI", size=10, color="0F172A")
+
+        for idx, s in enumerate(students, 1):
+            row_num = 4 + idx
+            ws.row_dimensions[row_num].height = 22
+            row_vals = [idx, s.nis, s.name, s.class_name, "Aktif" if s.is_active else "Nonaktif"]
+            for col_idx, val in enumerate(row_vals, 1):
+                cell = ws.cell(row=row_num, column=col_idx, value=val)
+                cell.font = data_font
+                cell.border = thin_border
+                cell.fill = row_fill
+                if col_idx in [1, 2, 4, 5]:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                else:
+                    cell.alignment = Alignment(horizontal="left", vertical="center")
+
+        ws.column_dimensions['A'].width = 8
+        ws.column_dimensions['B'].width = 18
+        ws.column_dimensions['C'].width = 30
+        ws.column_dimensions['D'].width = 18
+        ws.column_dimensions['E'].width = 16
+
+        out = io.BytesIO()
+        wb.save(out)
+        out.seek(0)
+        return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name=f"Daftar_Siswa_{admin.school_name.replace(' ', '_')}.xlsx")
+
     @app.route("/admin/students/download-template")
     @admin_required
     def admin_students_download_template():
