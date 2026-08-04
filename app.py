@@ -1107,7 +1107,7 @@ def create_app() -> Flask:
         # Subtitle Instruction Banner
         ws.merge_cells("A2:D2")
         sub_cell = ws["A2"]
-        sub_cell.value = "Petunjuk: Isi data siswa mulai dari baris ke-4. Tanda (*) menunjukkan kolom wajib."
+        sub_cell.value = "Petunjuk: Isi data siswa baru mulai dari baris ke-4. Tanda (*) menunjukkan kolom wajib."
         sub_cell.font = Font(name="Segoe UI", size=9, italic=True, color="475569")
         sub_cell.fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
         sub_cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -1135,30 +1135,20 @@ def create_app() -> Flask:
             cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = thin_border
 
-        # Example Data Rows
-        examples = [
-            ["1006", "Budi Santoso", "XII RPL 1", "123456"],
-            ["1007", "Citra Dewi", "XII TKJ 2", "123456"],
-            ["1008", "Doni Saputra", "XI RPL 2", "123456"]
-        ]
-        
-        row_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+        # CLEAN TEMPLATE - Clean empty formatted rows ready to type!
+        row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
         data_font = Font(name="Segoe UI", size=10, color="0F172A")
         
-        for row_idx, ex in enumerate(examples, 5):
-            ws.row_dimensions[row_idx].height = 22
-            for col_idx, val in enumerate(ex, 1):
-                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+        for r_idx in range(5, 25):
+            ws.row_dimensions[r_idx].height = 22
+            for c_idx in range(1, 5):
+                cell = ws.cell(row=r_idx, column=c_idx)
                 cell.font = data_font
                 cell.border = thin_border
                 cell.fill = row_fill
-                if col_idx in [1, 3, 4]:
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                else:
-                    cell.alignment = Alignment(horizontal="left", vertical="center")
 
         ws.column_dimensions['A'].width = 18
-        ws.column_dimensions['B'].width = 30
+        ws.column_dimensions['B'].width = 32
         ws.column_dimensions['C'].width = 18
         ws.column_dimensions['D'].width = 24
 
@@ -1167,45 +1157,48 @@ def create_app() -> Flask:
         out.seek(0)
         return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name="Template_Import_Siswa_LabKeeper.xlsx")
 
-    @app.route("/admin/students/import-excel", methods=["POST"])
+    @app.route("/admin/students/preview-excel", methods=["POST"])
     @admin_required
-    def admin_students_import_excel():
+    def admin_students_preview_excel():
         admin = current_admin()
         school_id = admin.school_id or 1
 
         if "file" not in request.files:
-            flash("Pilih file Excel (.xlsx) terlebih dahulu.", "error")
-            return redirect(url_for("admin_students"))
+            return jsonify({"success": False, "message": "Pilih file Excel (.xlsx) terlebih dahulu."}), 400
         
         file = request.files["file"]
         if not file or not file.filename.endswith(".xlsx"):
-            flash("Format file harus .xlsx (Excel).", "error")
-            return redirect(url_for("admin_students"))
+            return jsonify({"success": False, "message": "Format file harus .xlsx (Excel)."}), 400
 
         from openpyxl import load_workbook
+        import uuid
         try:
             wb = load_workbook(filename=file, data_only=True)
             ws = wb.active
 
-            # Validation check for wrong template type or random non-LabKeeper Excel file
             first_rows = list(ws.iter_rows(values_only=True))[:6]
             first_rows_text = str([[cell for cell in row if cell is not None] for row in first_rows])
             
-            # Check 1: Did user upload Tool template instead of Student template?
             if "Kode Alat" in first_rows_text or "Lokasi Rak" in first_rows_text:
-                flash("Gagal Impor: File yang diunggah adalah Template Alat Lab, bukan Template Siswa! Harap gunakan file Template Import Siswa.", "error")
-                return redirect(url_for("admin_students"))
+                return jsonify({"success": False, "message": "Gagal Impor: File yang diunggah adalah Template Alat Lab, bukan Template Siswa! Harap gunakan file Template Import Siswa."}), 400
 
-            # Check 2: Does file contain required Student columns (NIS and NAMA)?
             has_nis = any("NIS" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
             has_name = any("NAMA" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
 
             if not (has_nis and has_name):
-                flash("Gagal Impor: File Excel yang diunggah tidak dikenali sebagai Template Siswa LabKeeper. Harap unduh template resmi dari tombol 'Unduh Template'.", "error")
-                return redirect(url_for("admin_students"))
+                return jsonify({"success": False, "message": "Gagal Impor: File Excel yang diunggah tidak dikenali sebagai Template Siswa LabKeeper."}), 400
 
-            count_added = 0
-            count_skipped = 0
+            temp_dir = os.path.join(app.static_folder, "uploads", "temp")
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_filename = f"temp_students_{uuid.uuid4().hex}.xlsx"
+            temp_filepath = os.path.join(temp_dir, temp_filename)
+            file.seek(0)
+            file.save(temp_filepath)
+
+            parsed_rows = []
+            valid_count = 0
+            duplicate_count = 0
+            invalid_count = 0
 
             for i, row in enumerate(ws.iter_rows(values_only=True)):
                 if not row or not any(row):
@@ -1220,12 +1213,87 @@ def create_app() -> Flask:
                 class_name = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
                 password = str(row[3]).strip() if len(row) > 3 and row[3] is not None else "123456"
 
+                if not nis and not name and not class_name:
+                    continue
+
                 if not nis or not name or not class_name:
-                    count_skipped += 1
+                    invalid_count += 1
+                    parsed_rows.append({
+                        "row_idx": i + 1, "nis": nis or "-", "name": name or "-", "class_name": class_name or "-",
+                        "status": "invalid", "status_label": "🔴 Data Tidak Lengkap (Dilewati)"
+                    })
                     continue
 
                 if Student.query.filter_by(school_id=school_id, nis=nis).first():
-                    count_skipped += 1
+                    duplicate_count += 1
+                    parsed_rows.append({
+                        "row_idx": i + 1, "nis": nis, "name": name, "class_name": class_name,
+                        "status": "duplicate", "status_label": "🟡 NIS Sudah Ada (Dilewati)"
+                    })
+                    continue
+
+                valid_count += 1
+                parsed_rows.append({
+                    "row_idx": i + 1, "nis": nis, "name": name, "class_name": class_name,
+                    "status": "valid", "status_label": "🟢 Siap Di-import"
+                })
+
+            if not parsed_rows:
+                if os.path.exists(temp_filepath):
+                    os.remove(temp_filepath)
+                return jsonify({"success": False, "message": "File Excel masih kosong atau tidak berisi data siswa baru."}), 400
+
+            return jsonify({
+                "success": True,
+                "temp_file_id": temp_filename,
+                "total_rows": len(parsed_rows),
+                "valid_count": valid_count,
+                "duplicate_count": duplicate_count,
+                "invalid_count": invalid_count,
+                "rows": parsed_rows
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Gagal membaca file Excel: {e}"}), 400
+
+    @app.route("/admin/students/confirm-import", methods=["POST"])
+    @admin_required
+    def admin_students_confirm_import():
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        temp_file_id = request.form.get("temp_file_id", "").strip()
+
+        if not temp_file_id:
+            flash("ID file temporary tidak ditemukan.", "error")
+            return redirect(url_for("admin_students"))
+
+        temp_filepath = os.path.join(app.static_folder, "uploads", "temp", temp_file_id)
+        if not os.path.exists(temp_filepath):
+            flash("File preview telah kadaluarsa. Silakan upload ulang.", "error")
+            return redirect(url_for("admin_students"))
+
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(filename=temp_filepath, data_only=True)
+            ws = wb.active
+            count_added = 0
+
+            for row in ws.iter_rows(values_only=True):
+                if not row or not any(row):
+                    continue
+                
+                row_str = " ".join([str(c) for c in row if c is not None])
+                if "TEMPLATE" in row_str or "Petunjuk" in row_str or "NIS*" in row_str or "Nama Lengkap" in row_str or str(row[0]).strip().upper() in ["NIS", "NIS*"]:
+                    continue
+
+                nis = str(row[0]).strip() if row[0] is not None else ""
+                name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+                class_name = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
+                password = str(row[3]).strip() if len(row) > 3 and row[3] is not None else "123456"
+
+                if not nis or not name or not class_name:
+                    continue
+
+                if Student.query.filter_by(school_id=school_id, nis=nis).first():
                     continue
 
                 s = Student(school_id=school_id, nis=nis, name=name, class_name=class_name)
@@ -1234,10 +1302,12 @@ def create_app() -> Flask:
                 count_added += 1
 
             db.session.commit()
-            flash(f"Berhasil mengimpor {count_added} siswa baru! ({count_skipped} dilewati karena NIS sudah ada/tidak lengkap)", "success")
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+            flash(f"Berhasil mengimpor {count_added} siswa baru ke database!", "success")
         except Exception as e:
             db.session.rollback()
-            flash(f"Gagal mengimpor file Excel: {e}", "error")
+            flash(f"Gagal mengimpor data: {e}", "error")
 
         return redirect(url_for("admin_students"))
 
@@ -1263,7 +1333,7 @@ def create_app() -> Flask:
         # Subtitle Instruction Banner
         ws.merge_cells("A2:F2")
         sub_cell = ws["A2"]
-        sub_cell.value = "Petunjuk: Isi data alat mulai dari baris ke-4. Tanda (*) menunjukkan kolom wajib. QR Code akan dibuat otomatis."
+        sub_cell.value = "Petunjuk: Isi data alat lab baru mulai dari baris ke-4. Tanda (*) menunjukkan kolom wajib. QR Code akan dibuat otomatis."
         sub_cell.font = Font(name="Segoe UI", size=9, italic=True, color="475569")
         sub_cell.fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
         sub_cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -1291,27 +1361,17 @@ def create_app() -> Flask:
             cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = thin_border
 
-        # Example Data Rows
-        examples = [
-            ["ARD-010", "Arduino Mega 2560", "Mikrokontroler", "Rak A2", "Baik", "Board mikrokontroler Mega"],
-            ["SNS-005", "Sensor Ultrasonic HC-SR04", "Sensor", "Rak B1", "Baik", "Sensor jarak ultrasonik"],
-            ["ACT-002", "Servo Motor SG90", "Actuator", "Rak C3", "Baik", "Micro servo motor 9g"]
-        ]
-        
-        row_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+        # CLEAN TEMPLATE - Clean empty formatted rows ready to type!
+        row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
         data_font = Font(name="Segoe UI", size=10, color="0F172A")
         
-        for row_idx, ex in enumerate(examples, 5):
-            ws.row_dimensions[row_idx].height = 22
-            for col_idx, val in enumerate(ex, 1):
-                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+        for r_idx in range(5, 25):
+            ws.row_dimensions[r_idx].height = 22
+            for c_idx in range(1, 7):
+                cell = ws.cell(row=r_idx, column=c_idx)
                 cell.font = data_font
                 cell.border = thin_border
                 cell.fill = row_fill
-                if col_idx in [1, 3, 4, 5]:
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                else:
-                    cell.alignment = Alignment(horizontal="left", vertical="center")
 
         ws.column_dimensions['A'].width = 18
         ws.column_dimensions['B'].width = 30
@@ -1325,45 +1385,48 @@ def create_app() -> Flask:
         out.seek(0)
         return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name="Template_Import_Alat_LabKeeper.xlsx")
 
-    @app.route("/admin/tools/import-excel", methods=["POST"])
+    @app.route("/admin/tools/preview-excel", methods=["POST"])
     @admin_required
-    def admin_tools_import_excel():
+    def admin_tools_preview_excel():
         admin = current_admin()
         school_id = admin.school_id or 1
 
         if "file" not in request.files:
-            flash("Pilih file Excel (.xlsx) terlebih dahulu.", "error")
-            return redirect(url_for("admin_tools"))
+            return jsonify({"success": False, "message": "Pilih file Excel (.xlsx) terlebih dahulu."}), 400
         
         file = request.files["file"]
         if not file or not file.filename.endswith(".xlsx"):
-            flash("Format file harus .xlsx (Excel).", "error")
-            return redirect(url_for("admin_tools"))
+            return jsonify({"success": False, "message": "Format file harus .xlsx (Excel)."}), 400
 
         from openpyxl import load_workbook
+        import uuid
         try:
             wb = load_workbook(filename=file, data_only=True)
             ws = wb.active
 
-            # Validation check for wrong template type or random non-LabKeeper Excel file
             first_rows = list(ws.iter_rows(values_only=True))[:6]
             first_rows_text = str([[cell for cell in row if cell is not None] for row in first_rows])
             
-            # Check 1: Did user upload Student template instead of Tool template?
             if "NIS" in first_rows_text or "Nama Lengkap Siswa" in first_rows_text:
-                flash("Gagal Impor: File yang diunggah adalah Template Siswa, bukan Template Alat Lab! Harap gunakan file Template Import Alat.", "error")
-                return redirect(url_for("admin_tools"))
+                return jsonify({"success": False, "message": "Gagal Impor: File yang diunggah adalah Template Siswa, bukan Template Alat Lab! Harap gunakan file Template Import Alat."}), 400
 
-            # Check 2: Does file contain required Tool columns (Kode/Kode Alat and Nama/Nama Alat)?
             has_code = any("KODE" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
             has_name = any("NAMA" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
 
             if not (has_code and has_name):
-                flash("Gagal Impor: File Excel yang diunggah tidak dikenali sebagai Template Alat LabKeeper. Harap unduh template resmi dari tombol 'Unduh Template'.", "error")
-                return redirect(url_for("admin_tools"))
+                return jsonify({"success": False, "message": "Gagal Impor: File Excel yang diunggah tidak dikenali sebagai Template Alat LabKeeper."}), 400
 
-            count_added = 0
-            count_skipped = 0
+            temp_dir = os.path.join(app.static_folder, "uploads", "temp")
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_filename = f"temp_tools_{uuid.uuid4().hex}.xlsx"
+            temp_filepath = os.path.join(temp_dir, temp_filename)
+            file.seek(0)
+            file.save(temp_filepath)
+
+            parsed_rows = []
+            valid_count = 0
+            duplicate_count = 0
+            invalid_count = 0
 
             for i, row in enumerate(ws.iter_rows(values_only=True)):
                 if not row or not any(row):
@@ -1372,7 +1435,85 @@ def create_app() -> Flask:
                 row_str = " ".join([str(c) for c in row if c is not None])
                 if "TEMPLATE" in row_str or "Petunjuk" in row_str or "Kode Alat*" in row_str or "Nama Alat*" in row_str or str(row[0]).strip().upper() in ["KODE ALAT", "KODE ALAT*"]:
                     continue
+
+                code = str(row[0]).strip().upper() if row[0] is not None else ""
+                name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+                category = str(row[2]).strip() if len(row) > 2 and row[2] is not None else "Lainnya"
+                lab_location = str(row[3]).strip() if len(row) > 3 and row[3] is not None else ""
+                condition = str(row[4]).strip() if len(row) > 4 and row[4] is not None else "Baik"
+
+                if not code and not name:
+                    continue
+
+                if not code or not name:
+                    invalid_count += 1
+                    parsed_rows.append({
+                        "row_idx": i + 1, "code": code or "-", "name": name or "-", "category": category, "lab_location": lab_location or "-",
+                        "status": "invalid", "status_label": "🔴 Data Tidak Lengkap (Dilewati)"
+                    })
+                    continue
+
+                if Tool.query.filter_by(school_id=school_id, code=code).first():
+                    duplicate_count += 1
+                    parsed_rows.append({
+                        "row_idx": i + 1, "code": code, "name": name, "category": category, "lab_location": lab_location or "-",
+                        "status": "duplicate", "status_label": "🟡 Kode Sudah Ada (Dilewati)"
+                    })
+                    continue
+
+                valid_count += 1
+                parsed_rows.append({
+                    "row_idx": i + 1, "code": code, "name": name, "category": category, "lab_location": lab_location or "-",
+                    "status": "valid", "status_label": "🟢 Siap Di-import & Generate QR"
+                })
+
+            if not parsed_rows:
+                if os.path.exists(temp_filepath):
+                    os.remove(temp_filepath)
+                return jsonify({"success": False, "message": "File Excel masih kosong atau tidak berisi data alat baru."}), 400
+
+            return jsonify({
+                "success": True,
+                "temp_file_id": temp_filename,
+                "total_rows": len(parsed_rows),
+                "valid_count": valid_count,
+                "duplicate_count": duplicate_count,
+                "invalid_count": invalid_count,
+                "rows": parsed_rows
+            })
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Gagal membaca file Excel: {e}"}), 400
+
+    @app.route("/admin/tools/confirm-import", methods=["POST"])
+    @admin_required
+    def admin_tools_confirm_import():
+        admin = current_admin()
+        school_id = admin.school_id or 1
+        temp_file_id = request.form.get("temp_file_id", "").strip()
+
+        if not temp_file_id:
+            flash("ID file temporary tidak ditemukan.", "error")
+            return redirect(url_for("admin_tools"))
+
+        temp_filepath = os.path.join(app.static_folder, "uploads", "temp", temp_file_id)
+        if not os.path.exists(temp_filepath):
+            flash("File preview telah kadaluarsa. Silakan upload ulang.", "error")
+            return redirect(url_for("admin_tools"))
+
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(filename=temp_filepath, data_only=True)
+            ws = wb.active
+            count_added = 0
+
+            for row in ws.iter_rows(values_only=True):
+                if not row or not any(row):
+                    continue
                 
+                row_str = " ".join([str(c) for c in row if c is not None])
+                if "TEMPLATE" in row_str or "Petunjuk" in row_str or "Kode Alat*" in row_str or "Nama Alat*" in row_str or str(row[0]).strip().upper() in ["KODE ALAT", "KODE ALAT*"]:
+                    continue
+
                 code = str(row[0]).strip().upper() if row[0] is not None else ""
                 name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
                 category = str(row[2]).strip() if len(row) > 2 and row[2] is not None else "Lainnya"
@@ -1381,11 +1522,9 @@ def create_app() -> Flask:
                 description = str(row[5]).strip() if len(row) > 5 and row[5] is not None else ""
 
                 if not code or not name:
-                    count_skipped += 1
                     continue
 
                 if Tool.query.filter_by(school_id=school_id, code=code).first():
-                    count_skipped += 1
                     continue
 
                 t = Tool(
@@ -1409,10 +1548,12 @@ def create_app() -> Flask:
 
                 count_added += 1
 
-            flash(f"Berhasil mengimpor {count_added} alat lab baru dan generate QR otomatis! ({count_skipped} dilewati karena kode sudah ada/tidak lengkap)", "success")
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+            flash(f"Berhasil mengimpor {count_added} alat lab baru dan generate QR otomatis!", "success")
         except Exception as e:
             db.session.rollback()
-            flash(f"Gagal mengimpor file Excel: {e}", "error")
+            flash(f"Gagal mengimpor data: {e}", "error")
 
         return redirect(url_for("admin_tools"))
 

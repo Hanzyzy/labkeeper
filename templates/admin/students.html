@@ -274,40 +274,169 @@ function clearBulkSelection(formId, barId) {
 }
 </script>
 
-<!-- Import Students Excel Modal -->
+<!-- Import Students Excel Modal with Interactive Preview -->
 <div id="importStudentsModal" class="custom-modal-backdrop" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,10,0.6);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1.5rem;">
-  <div class="custom-modal-card" style="background:var(--paper);border:1px solid var(--line);border-radius:1.5rem;width:100%;max-width:480px;padding:2rem;box-shadow:0 20px 50px rgba(0,0,0,0.15);text-align:left;">
+  <div class="custom-modal-card" style="background:var(--paper);border:1px solid var(--line);border-radius:1.5rem;width:100%;max-width:680px;padding:2rem;box-shadow:0 20px 50px rgba(0,0,0,0.15);text-align:left;max-height:90vh;display:flex;flex-direction:column;">
     
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-      <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.25rem;margin:0;color:var(--ink);">Import Data Siswa (Excel)</h3>
-      <button type="button" onclick="document.getElementById('importStudentsModal').style.display='none'" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:var(--muted);">&times;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.25rem;margin:0;color:var(--ink);" id="stdModalTitle">Import Data Siswa (Excel)</h3>
+      <button type="button" onclick="closeStudentImportModal()" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:var(--muted);">&times;</button>
     </div>
 
-    <p style="font-size:0.875rem;color:var(--ink-2);margin-bottom:1rem;line-height:1.5;">
-      Unggah file Excel <strong>(.xlsx)</strong> berisi daftar siswa sekolah kamu. Gunakan format template resmi agar data terproses dengan benar.
-    </p>
+    <!-- Step 1: Upload File Container -->
+    <div id="stdStepUpload">
+      <p style="font-size:0.875rem;color:var(--ink-2);margin-bottom:1rem;line-height:1.5;">
+        Unggah file Excel <strong>(.xlsx)</strong> yang berisi data siswa baru. Sistem akan me-review data secara otomatis sebelum disimpan ke database.
+      </p>
 
-    <div style="margin-bottom:1.5rem;background:var(--bg);padding:10px 14px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:0.8125rem;font-weight:600;color:var(--ink);">Format Template Excel</span>
-      <a href="/admin/students/download-template" class="btn btn-secondary btn-sm" style="font-size:0.75rem;font-weight:700;padding:6px 12px;display:inline-flex;align-items:center;gap:4px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Unduh Template
-      </a>
+      <div style="margin-bottom:1.25rem;background:var(--bg);padding:10px 14px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Template Resmi Berih</div>
+          <div style="font-size:0.75rem;color:var(--muted);">Kosong tanpa contoh data dummy</div>
+        </div>
+        <a href="/admin/students/download-template" class="btn btn-secondary btn-sm" style="font-size:0.75rem;font-weight:700;padding:6px 12px;display:inline-flex;align-items:center;gap:4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Unduh Template
+        </a>
+      </div>
+
+      <div id="stdUploadErr" style="display:none;background:#FEE2E2;color:#DC2626;padding:10px 14px;border-radius:10px;font-size:0.8125rem;font-weight:600;margin-bottom:1.25rem;line-height:1.4;"></div>
+
+      <form id="stdUploadForm" onsubmit="handleStudentPreview(event)">
+        <div style="margin-bottom:1.5rem;">
+          <label class="form-label" style="font-weight:700;margin-bottom:0.5rem;display:block;">Pilih File Excel (.xlsx) *</label>
+          <input type="file" id="stdFileInput" accept=".xlsx" required class="form-input" style="width:100%;padding:10px;border-radius:10px;">
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button type="button" onclick="closeStudentImportModal()" class="btn btn-secondary" style="font-weight:600;">Batal</button>
+          <button type="submit" id="btnStdPreviewSubmit" class="btn btn-primary" style="font-weight:700;background:#000000;color:#ffffff;padding:10px 20px;display:inline-flex;align-items:center;gap:6px;">
+            <span>Pratinjau Data (Preview) &nbsp;→</span>
+          </button>
+        </div>
+      </form>
     </div>
 
-    <form method="POST" action="/admin/students/import-excel" enctype="multipart/form-data">
-      <div style="margin-bottom:1.5rem;">
-        <label class="form-label" style="font-weight:700;margin-bottom:0.5rem;display:block;">Pilih File Excel (.xlsx) *</label>
-        <input type="file" name="file" accept=".xlsx" required class="form-input" style="width:100%;padding:10px;border-radius:10px;">
+    <!-- Step 2: Interactive Preview Table Container -->
+    <div id="stdStepPreview" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      
+      <!-- Summary Badges -->
+      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;" id="badgeStdValid">🟢 0 Siap</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEF9C3;color:#A16207;" id="badgeStdDup">🟡 0 Duplikat</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;" id="badgeStdInvalid">🔴 0 Tidak Lengkap</span>
       </div>
 
-      <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button type="button" onclick="document.getElementById('importStudentsModal').style.display='none'" class="btn btn-secondary" style="font-weight:600;">Batal</button>
-        <button type="submit" class="btn btn-primary" style="font-weight:700;background:#000000;color:#ffffff;padding:10px 20px;">Upload & Import</button>
+      <!-- Preview Table Scroll Area -->
+      <div style="flex:1;overflow-y:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:1.25rem;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+          <thead>
+            <tr style="background:var(--bg);border-bottom:1px solid var(--line);text-align:left;">
+              <th style="padding:8px 12px;font-weight:700;color:var(--muted);">Baris</th>
+              <th style="padding:8px 12px;font-weight:700;color:var(--muted);">NIS</th>
+              <th style="padding:8px 12px;font-weight:700;color:var(--muted);">Nama Siswa</th>
+              <th style="padding:8px 12px;font-weight:700;color:var(--muted);">Kelas</th>
+              <th style="padding:8px 12px;font-weight:700;color:var(--muted);">Status Review</th>
+            </tr>
+          </thead>
+          <tbody id="stdPreviewTbody">
+          </tbody>
+        </table>
       </div>
-    </form>
+
+      <form method="POST" action="/admin/students/confirm-import" style="display:flex;gap:8px;justify-content:flex-end;">
+        <input type="hidden" name="temp_file_id" id="stdTempFileId" value="">
+        <button type="button" onclick="backToStudentUpload()" class="btn btn-secondary" style="font-weight:600;">← Upload Ulang</button>
+        <button type="submit" id="btnStdConfirm" class="btn btn-primary" style="font-weight:700;background:#000000;color:#ffffff;padding:10px 20px;">
+          Konfirmasi Import Siswa
+        </button>
+      </form>
+
+    </div>
 
   </div>
 </div>
+
+<script>
+function closeStudentImportModal() {
+  document.getElementById('importStudentsModal').style.display = 'none';
+  backToStudentUpload();
+}
+
+function backToStudentUpload() {
+  document.getElementById('stdStepUpload').style.display = 'block';
+  document.getElementById('stdStepPreview').style.display = 'none';
+  document.getElementById('stdUploadErr').style.display = 'none';
+  document.getElementById('stdModalTitle').innerText = 'Import Data Siswa (Excel)';
+}
+
+async function handleStudentPreview(e) {
+  e.preventDefault();
+  const fileInput = document.getElementById('stdFileInput');
+  if (!fileInput.files || !fileInput.files[0]) return;
+
+  const btn = document.getElementById('btnStdPreviewSubmit');
+  const errDiv = document.getElementById('stdUploadErr');
+  errDiv.style.display = 'none';
+  btn.disabled = true;
+  btn.innerText = 'Membaca Excel...';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  try {
+    const res = await fetch('/admin/students/preview-excel', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+
+    btn.disabled = false;
+    btn.innerHTML = 'Pratinjau Data (Preview) &nbsp;→';
+
+    if (!res.ok || !data.success) {
+      errDiv.innerText = data.message || 'Gagal membaca file Excel.';
+      errDiv.style.display = 'block';
+      return;
+    }
+
+    // Populate preview step
+    document.getElementById('stdTempFileId').value = data.temp_file_id;
+    document.getElementById('badgeStdValid').innerText = `🟢 ${data.valid_count} Siap Di-import`;
+    document.getElementById('badgeStdDup').innerText = `🟡 ${data.duplicate_count} NIS Duplikat (Dilewati)`;
+    document.getElementById('badgeStdInvalid').innerText = `🔴 ${data.invalid_count} Tidak Lengkap (Dilewati)`;
+
+    const tbody = document.getElementById('stdPreviewTbody');
+    tbody.innerHTML = data.rows.map(r => `
+      <tr style="border-bottom:1px solid var(--line);background:${r.status === 'valid' ? '#FFFFFF' : '#FAFAFA'};">
+        <td style="padding:8px 12px;font-family:var(--font-mono);font-weight:700;">#${r.row_idx}</td>
+        <td style="padding:8px 12px;font-family:var(--font-mono);font-weight:700;">${r.nis}</td>
+        <td style="padding:8px 12px;font-weight:600;">${r.name}</td>
+        <td style="padding:8px 12px;">${r.class_name}</td>
+        <td style="padding:8px 12px;font-size:0.75rem;font-weight:700;">${r.status_label}</td>
+      </tr>
+    `).join('');
+
+    const confirmBtn = document.getElementById('btnStdConfirm');
+    if (data.valid_count > 0) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerText = `Konfirmasi Import ${data.valid_count} Siswa`;
+    } else {
+      confirmBtn.disabled = true;
+      confirmBtn.innerText = `Tidak ada data baru untuk di-import`;
+    }
+
+    document.getElementById('stdStepUpload').style.display = 'none';
+    document.getElementById('stdStepPreview').style.display = 'flex';
+    document.getElementById('stdModalTitle').innerText = 'Pratinjau Data Siswa';
+
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = 'Pratinjau Data (Preview) &nbsp;→';
+    errDiv.innerText = 'Terjadi kesalahan koneksi saat membaca file.';
+    errDiv.style.display = 'block';
+  }
+}
+</script>
 
 {% endblock %}
