@@ -43,10 +43,11 @@ sudo systemctl start labkeeper
 sudo systemctl enable labkeeper
 
 echo "🌐 [4/5] Mengkonfigurasi Nginx Reverse Proxy..."
-sudo bash -c "cat <<EOF > /etc/nginx/sites-available/labkeeper
+WORK_DIR=$(pwd)
+sudo tee /etc/nginx/sites-available/labkeeper > /dev/null << NGINX_CONF
 server {
     listen 80;
-    server_name $DOMAIN www.$DOMAIN;
+    server_name ${DOMAIN} www.${DOMAIN};
 
     location / {
         proxy_pass http://127.0.0.1:5000;
@@ -57,10 +58,10 @@ server {
     }
 
     location /static/ {
-        alias $(pwd)/static/;
+        alias ${WORK_DIR}/static/;
     }
 }
-EOF"
+NGINX_CONF
 
 sudo ln -sf /etc/nginx/sites-available/labkeeper /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default

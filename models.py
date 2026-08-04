@@ -234,6 +234,29 @@ def init_db(app):
                                   base_url="http://localhost:5000"))
             db.session.commit()
 
+        # Seed default admin if empty
+        if Admin.query.count() == 0:
+            default_admin = Admin(school_id=1, username="admin", full_name="Administrator Lab")
+            default_admin.set_password("admin123")
+            db.session.add(default_admin)
+            db.session.commit()
+
+        # Seed default students for all schools if empty
+        if Student.query.count() == 0:
+            sample_students = [
+                ("1001", "Budi Santoso", "XII RPL 1"),
+                ("1002", "Siti Nurhaliza", "XII RPL 1"),
+                ("1003", "Ahmad Dahlan", "XII TKJ 2"),
+                ("1004", "Dewi Sartika", "XI RPL 2"),
+                ("1005", "Eko Prasetyo", "X TJA 1"),
+            ]
+            for school in School.query.all():
+                for nis, name, cls in sample_students:
+                    st = Student(school_id=school.id, nis=nis, name=name, class_name=cls)
+                    st.set_password("siswa123")
+                    db.session.add(st)
+            db.session.commit()
+
         # Update existing null school_ids to default school (id=1)
         Admin.query.filter(Admin.school_id == None).update({Admin.school_id: 1})
         Student.query.filter(Student.school_id == None).update({Student.school_id: 1})
