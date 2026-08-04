@@ -994,25 +994,78 @@ def create_app() -> Flask:
     @admin_required
     def admin_students_download_template():
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
         wb = Workbook()
         ws = wb.active
-        ws.title = "Template Siswa"
+        ws.title = "Data Siswa"
         
-        headers = ["NIS*", "Nama Lengkap Siswa*", "Kelas*", "Password*"]
-        ws.append(headers)
+        # Title Banner
+        ws.merge_cells("A1:D1")
+        title_cell = ws["A1"]
+        title_cell.value = "TEMPLATE IMPORT DATA SISWA — LABKEEPER"
+        title_cell.font = Font(name="Segoe UI", size=12, bold=True, color="FFFFFF")
+        title_cell.fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+        title_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[1].height = 32
 
-        header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
-        header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
-        for col in range(1, 5):
-            cell = ws.cell(row=1, column=col)
+        # Subtitle Instruction Banner
+        ws.merge_cells("A2:D2")
+        sub_cell = ws["A2"]
+        sub_cell.value = "Petunjuk: Isi data siswa mulai dari baris ke-4. Tanda (*) menunjukkan kolom wajib."
+        sub_cell.font = Font(name="Segoe UI", size=9, italic=True, color="475569")
+        sub_cell.fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+        sub_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[2].height = 22
+
+        ws.row_dimensions[3].height = 6
+
+        # Table Header
+        headers = ["NIS*", "Nama Lengkap Siswa*", "Kelas*", "Password (Opsional)"]
+        ws.row_dimensions[4].height = 26
+        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        header_font = Font(name="Segoe UI", size=11, bold=True, color="F8FAFC")
+        
+        thin_border = Border(
+            left=Side(style='thin', color='CBD5E1'),
+            right=Side(style='thin', color='CBD5E1'),
+            top=Side(style='thin', color='CBD5E1'),
+            bottom=Side(style='thin', color='CBD5E1')
+        )
+
+        for col_idx, text in enumerate(headers, 1):
+            cell = ws.cell(row=4, column=col_idx, value=text)
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
 
-        ws.append(["1006", "Budi Santoso", "XII RPL 1", "123456"])
-        ws.append(["1007", "Citra Dewi", "XII TKJ 2", "123456"])
+        # Example Data Rows
+        examples = [
+            ["1006", "Budi Santoso", "XII RPL 1", "123456"],
+            ["1007", "Citra Dewi", "XII TKJ 2", "123456"],
+            ["1008", "Doni Saputra", "XI RPL 2", "123456"]
+        ]
+        
+        row_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+        data_font = Font(name="Segoe UI", size=10, color="0F172A")
+        
+        for row_idx, ex in enumerate(examples, 5):
+            ws.row_dimensions[row_idx].height = 22
+            for col_idx, val in enumerate(ex, 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+                cell.font = data_font
+                cell.border = thin_border
+                cell.fill = row_fill
+                if col_idx in [1, 3, 4]:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                else:
+                    cell.alignment = Alignment(horizontal="left", vertical="center")
+
+        ws.column_dimensions['A'].width = 18
+        ws.column_dimensions['B'].width = 30
+        ws.column_dimensions['C'].width = 18
+        ws.column_dimensions['D'].width = 24
 
         out = io.BytesIO()
         wb.save(out)
@@ -1038,13 +1091,27 @@ def create_app() -> Flask:
         try:
             wb = load_workbook(filename=file, data_only=True)
             ws = wb.active
+
+            # Validation check for wrong template type
+            first_rows_text = str([[cell for cell in row if cell is not None] for row in list(ws.iter_rows(values_only=True))[:6]])
+            if "Kode Alat" in first_rows_text or "Lokasi Rak" in first_rows_text:
+                flash("Gagal Impor: File yang diunggah adalah Template Alat Lab, bukan Template Siswa! Harap gunakan file Template Import Siswa.", "error")
+                return redirect(url_for("admin_students"))
+            if "NIS" not in first_rows_text and "Nama Lengkap" not in first_rows_text:
+                flash("Format file tidak sesuai dengan Template Siswa resmi. Harap unduh dan gunakan Template Import Siswa resmi.", "error")
+                return redirect(url_for("admin_students"))
+
             count_added = 0
             count_skipped = 0
 
             for i, row in enumerate(ws.iter_rows(values_only=True)):
-                if i == 0 or not row or not any(row):
+                if not row or not any(row):
                     continue
                 
+                row_str = " ".join([str(c) for c in row if c is not None])
+                if "TEMPLATE" in row_str or "Petunjuk" in row_str or "NIS*" in row_str or "Nama Lengkap" in row_str or str(row[0]).strip().upper() in ["NIS", "NIS*"]:
+                    continue
+
                 nis = str(row[0]).strip() if row[0] is not None else ""
                 name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
                 class_name = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
@@ -1075,25 +1142,80 @@ def create_app() -> Flask:
     @admin_required
     def admin_tools_download_template():
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
         wb = Workbook()
         ws = wb.active
-        ws.title = "Template Alat"
+        ws.title = "Data Alat Lab"
         
-        headers = ["Kode Alat*", "Nama Alat*", "Kategori", "Lokasi Rak", "Kondisi", "Deskripsi"]
-        ws.append(headers)
+        # Title Banner
+        ws.merge_cells("A1:F1")
+        title_cell = ws["A1"]
+        title_cell.value = "TEMPLATE IMPORT DATA ALAT LAB — LABKEEPER"
+        title_cell.font = Font(name="Segoe UI", size=12, bold=True, color="FFFFFF")
+        title_cell.fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+        title_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[1].height = 32
 
-        header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
-        header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
-        for col in range(1, 7):
-            cell = ws.cell(row=1, column=col)
+        # Subtitle Instruction Banner
+        ws.merge_cells("A2:F2")
+        sub_cell = ws["A2"]
+        sub_cell.value = "Petunjuk: Isi data alat mulai dari baris ke-4. Tanda (*) menunjukkan kolom wajib. QR Code akan dibuat otomatis."
+        sub_cell.font = Font(name="Segoe UI", size=9, italic=True, color="475569")
+        sub_cell.fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+        sub_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[2].height = 22
+
+        ws.row_dimensions[3].height = 6
+
+        # Table Header
+        headers = ["Kode Alat*", "Nama Alat*", "Kategori", "Lokasi Rak", "Kondisi", "Deskripsi"]
+        ws.row_dimensions[4].height = 26
+        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        header_font = Font(name="Segoe UI", size=11, bold=True, color="F8FAFC")
+        
+        thin_border = Border(
+            left=Side(style='thin', color='CBD5E1'),
+            right=Side(style='thin', color='CBD5E1'),
+            top=Side(style='thin', color='CBD5E1'),
+            bottom=Side(style='thin', color='CBD5E1')
+        )
+
+        for col_idx, text in enumerate(headers, 1):
+            cell = ws.cell(row=4, column=col_idx, value=text)
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
 
-        ws.append(["ARD-010", "Arduino Mega 2560", "Mikrokontroler", "Rak A2", "Baik", "Board mikrokontroler Mega"])
-        ws.append(["SNS-005", "Sensor Ultrasonic HC-SR04", "Sensor", "Rak B1", "Baik", "Sensor jarak ultrasonik"])
+        # Example Data Rows
+        examples = [
+            ["ARD-010", "Arduino Mega 2560", "Mikrokontroler", "Rak A2", "Baik", "Board mikrokontroler Mega"],
+            ["SNS-005", "Sensor Ultrasonic HC-SR04", "Sensor", "Rak B1", "Baik", "Sensor jarak ultrasonik"],
+            ["ACT-002", "Servo Motor SG90", "Actuator", "Rak C3", "Baik", "Micro servo motor 9g"]
+        ]
+        
+        row_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+        data_font = Font(name="Segoe UI", size=10, color="0F172A")
+        
+        for row_idx, ex in enumerate(examples, 5):
+            ws.row_dimensions[row_idx].height = 22
+            for col_idx, val in enumerate(ex, 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+                cell.font = data_font
+                cell.border = thin_border
+                cell.fill = row_fill
+                if col_idx in [1, 3, 4, 5]:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                else:
+                    cell.alignment = Alignment(horizontal="left", vertical="center")
+
+        ws.column_dimensions['A'].width = 18
+        ws.column_dimensions['B'].width = 30
+        ws.column_dimensions['C'].width = 20
+        ws.column_dimensions['D'].width = 18
+        ws.column_dimensions['E'].width = 16
+        ws.column_dimensions['F'].width = 32
 
         out = io.BytesIO()
         wb.save(out)
@@ -1119,11 +1241,25 @@ def create_app() -> Flask:
         try:
             wb = load_workbook(filename=file, data_only=True)
             ws = wb.active
+
+            # Validation check for wrong template type
+            first_rows_text = str([[cell for cell in row if cell is not None] for row in list(ws.iter_rows(values_only=True))[:6]])
+            if "NIS" in first_rows_text or "Nama Lengkap Siswa" in first_rows_text:
+                flash("Gagal Impor: File yang diunggah adalah Template Siswa, bukan Template Alat Lab! Harap gunakan file Template Import Alat.", "error")
+                return redirect(url_for("admin_tools"))
+            if "Kode Alat" not in first_rows_text and "Nama Alat" not in first_rows_text:
+                flash("Format file tidak sesuai dengan Template Alat resmi. Harap unduh dan gunakan Template Import Alat resmi.", "error")
+                return redirect(url_for("admin_tools"))
+
             count_added = 0
             count_skipped = 0
 
             for i, row in enumerate(ws.iter_rows(values_only=True)):
-                if i == 0 or not row or not any(row):
+                if not row or not any(row):
+                    continue
+                
+                row_str = " ".join([str(c) for c in row if c is not None])
+                if "TEMPLATE" in row_str or "Petunjuk" in row_str or "Kode Alat*" in row_str or "Nama Alat*" in row_str or str(row[0]).strip().upper() in ["KODE ALAT", "KODE ALAT*"]:
                     continue
                 
                 code = str(row[0]).strip().upper() if row[0] is not None else ""
