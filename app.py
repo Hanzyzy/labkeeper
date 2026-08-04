@@ -15,8 +15,9 @@ Multi-School Lab Equipment Borrowing System with QR Codes.
 - Admin manages equipment, students, and borrowings strictly isolated per school
 """
 import os
+import io
 from datetime import datetime, timedelta, timezone
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from dotenv import load_dotenv
 
 
@@ -987,10 +988,186 @@ def create_app() -> Flask:
                 db.session.delete(s)
             db.session.commit()
             flash(f"{len(students)} siswa dihapus permanen. Histori peminjaman tetap tersimpan.", "info")
-        else:
-            flash(f"Aksi tidak dikenal: {action}", "error")
+        return redirect(url_for("admin_students"))
+
+    @app.route("/admin/students/download-template")
+    @admin_required
+    def admin_students_download_template():
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Template Siswa"
+        
+        headers = ["NIS*", "Nama Lengkap Siswa*", "Kelas*", "Password*"]
+        ws.append(headers)
+
+        header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+        header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+        for col in range(1, 5):
+            cell = ws.cell(row=1, column=col)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        ws.append(["1006", "Budi Santoso", "XII RPL 1", "123456"])
+        ws.append(["1007", "Citra Dewi", "XII TKJ 2", "123456"])
+
+        out = io.BytesIO()
+        wb.save(out)
+        out.seek(0)
+        return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name="Template_Import_Siswa_LabKeeper.xlsx")
+
+    @app.route("/admin/students/import-excel", methods=["POST"])
+    @admin_required
+    def admin_students_import_excel():
+        admin = current_admin()
+        school_id = admin.school_id or 1
+
+        if "file" not in request.files:
+            flash("Pilih file Excel (.xlsx) terlebih dahulu.", "error")
+            return redirect(url_for("admin_students"))
+        
+        file = request.files["file"]
+        if not file or not file.filename.endswith(".xlsx"):
+            flash("Format file harus .xlsx (Excel).", "error")
+            return redirect(url_for("admin_students"))
+
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(filename=file, data_only=True)
+            ws = wb.active
+            count_added = 0
+            count_skipped = 0
+
+            for i, row in enumerate(ws.iter_rows(values_only=True)):
+                if i == 0 or not row or not any(row):
+                    continue
+                
+                nis = str(row[0]).strip() if row[0] is not None else ""
+                name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+                class_name = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
+                password = str(row[3]).strip() if len(row) > 3 and row[3] is not None else "123456"
+
+                if not nis or not name or not class_name:
+                    count_skipped += 1
+                    continue
+
+                if Student.query.filter_by(school_id=school_id, nis=nis).first():
+                    count_skipped += 1
+                    continue
+
+                s = Student(school_id=school_id, nis=nis, name=name, class_name=class_name)
+                s.set_password(password if password else "123456")
+                db.session.add(s)
+                count_added += 1
+
+            db.session.commit()
+            flash(f"Berhasil mengimpor {count_added} siswa baru! ({count_skipped} dilewati karena NIS sudah ada/tidak lengkap)", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Gagal mengimpor file Excel: {e}", "error")
 
         return redirect(url_for("admin_students"))
+
+    @app.route("/admin/tools/download-template")
+    @admin_required
+    def admin_tools_download_template():
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Template Alat"
+        
+        headers = ["Kode Alat*", "Nama Alat*", "Kategori", "Lokasi Rak", "Kondisi", "Deskripsi"]
+        ws.append(headers)
+
+        header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+        header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+        for col in range(1, 7):
+            cell = ws.cell(row=1, column=col)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        ws.append(["ARD-010", "Arduino Mega 2560", "Mikrokontroler", "Rak A2", "Baik", "Board mikrokontroler Mega"])
+        ws.append(["SNS-005", "Sensor Ultrasonic HC-SR04", "Sensor", "Rak B1", "Baik", "Sensor jarak ultrasonik"])
+
+        out = io.BytesIO()
+        wb.save(out)
+        out.seek(0)
+        return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name="Template_Import_Alat_LabKeeper.xlsx")
+
+    @app.route("/admin/tools/import-excel", methods=["POST"])
+    @admin_required
+    def admin_tools_import_excel():
+        admin = current_admin()
+        school_id = admin.school_id or 1
+
+        if "file" not in request.files:
+            flash("Pilih file Excel (.xlsx) terlebih dahulu.", "error")
+            return redirect(url_for("admin_tools"))
+        
+        file = request.files["file"]
+        if not file or not file.filename.endswith(".xlsx"):
+            flash("Format file harus .xlsx (Excel).", "error")
+            return redirect(url_for("admin_tools"))
+
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(filename=file, data_only=True)
+            ws = wb.active
+            count_added = 0
+            count_skipped = 0
+
+            for i, row in enumerate(ws.iter_rows(values_only=True)):
+                if i == 0 or not row or not any(row):
+                    continue
+                
+                code = str(row[0]).strip().upper() if row[0] is not None else ""
+                name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+                category = str(row[2]).strip() if len(row) > 2 and row[2] is not None else "Lainnya"
+                lab_location = str(row[3]).strip() if len(row) > 3 and row[3] is not None else ""
+                condition = str(row[4]).strip() if len(row) > 4 and row[4] is not None else "Baik"
+                description = str(row[5]).strip() if len(row) > 5 and row[5] is not None else ""
+
+                if not code or not name:
+                    count_skipped += 1
+                    continue
+
+                if Tool.query.filter_by(school_id=school_id, code=code).first():
+                    count_skipped += 1
+                    continue
+
+                t = Tool(
+                    school_id=school_id,
+                    code=code,
+                    name=name,
+                    category=category,
+                    lab_location=lab_location,
+                    condition=condition if condition in ["Baik", "Rusak Ringan", "Rusak Berat", "Perlu Perbaikan"] else "Baik",
+                    description=description,
+                    icon="◇"
+                )
+                db.session.add(t)
+                db.session.commit()
+
+                try:
+                    t.qr_path = generate_qr_for_tool(t)
+                    db.session.commit()
+                except Exception:
+                    pass
+
+                count_added += 1
+
+            flash(f"Berhasil mengimpor {count_added} alat lab baru dan generate QR otomatis! ({count_skipped} dilewati karena kode sudah ada/tidak lengkap)", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Gagal mengimpor file Excel: {e}", "error")
+
+        return redirect(url_for("admin_tools"))
 
     @app.route("/admin/qr-labels")
     @admin_required
