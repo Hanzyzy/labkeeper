@@ -494,10 +494,10 @@ def create_app() -> Flask:
             code = request.form.get("code", "").strip().upper()
             name = request.form.get("name", "").strip()
             category = request.form.get("category", "").strip()
-            lab_location = request.form.get("lab_location", "").strip()
+            lab_location = (request.form.get("lab_location") or request.form.get("location") or "").strip()
             condition = request.form.get("condition", "Baik")
             description = request.form.get("description", "").strip()
-            icon = request.form.get("icon", "📦").strip()
+            icon = request.form.get("icon", "◇").strip()
             
             if not code or not name:
                 flash("Kode dan nama alat wajib diisi.", "error")
@@ -535,10 +535,10 @@ def create_app() -> Flask:
             tool.code = new_code
             tool.name = request.form.get("name", "").strip()
             tool.category = request.form.get("category", "").strip()
-            tool.lab_location = request.form.get("lab_location", "").strip()
+            tool.lab_location = (request.form.get("lab_location") or request.form.get("location") or "").strip()
             tool.condition = request.form.get("condition", "Baik")
             tool.description = request.form.get("description", "").strip()
-            tool.icon = request.form.get("icon", "📦").strip()
+            tool.icon = request.form.get("icon", "◇").strip()
             db.session.commit()
             flash(f"Data {tool.name} diperbarui.", "success")
             return redirect(url_for("admin_tools"))
