@@ -1092,13 +1092,21 @@ def create_app() -> Flask:
             wb = load_workbook(filename=file, data_only=True)
             ws = wb.active
 
-            # Validation check for wrong template type
-            first_rows_text = str([[cell for cell in row if cell is not None] for row in list(ws.iter_rows(values_only=True))[:6]])
+            # Validation check for wrong template type or random non-LabKeeper Excel file
+            first_rows = list(ws.iter_rows(values_only=True))[:6]
+            first_rows_text = str([[cell for cell in row if cell is not None] for row in first_rows])
+            
+            # Check 1: Did user upload Tool template instead of Student template?
             if "Kode Alat" in first_rows_text or "Lokasi Rak" in first_rows_text:
                 flash("Gagal Impor: File yang diunggah adalah Template Alat Lab, bukan Template Siswa! Harap gunakan file Template Import Siswa.", "error")
                 return redirect(url_for("admin_students"))
-            if "NIS" not in first_rows_text and "Nama Lengkap" not in first_rows_text:
-                flash("Format file tidak sesuai dengan Template Siswa resmi. Harap unduh dan gunakan Template Import Siswa resmi.", "error")
+
+            # Check 2: Does file contain required Student columns (NIS and NAMA)?
+            has_nis = any("NIS" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
+            has_name = any("NAMA" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
+
+            if not (has_nis and has_name):
+                flash("Gagal Impor: File Excel yang diunggah tidak dikenali sebagai Template Siswa LabKeeper. Harap unduh template resmi dari tombol 'Unduh Template'.", "error")
                 return redirect(url_for("admin_students"))
 
             count_added = 0
@@ -1242,13 +1250,21 @@ def create_app() -> Flask:
             wb = load_workbook(filename=file, data_only=True)
             ws = wb.active
 
-            # Validation check for wrong template type
-            first_rows_text = str([[cell for cell in row if cell is not None] for row in list(ws.iter_rows(values_only=True))[:6]])
+            # Validation check for wrong template type or random non-LabKeeper Excel file
+            first_rows = list(ws.iter_rows(values_only=True))[:6]
+            first_rows_text = str([[cell for cell in row if cell is not None] for row in first_rows])
+            
+            # Check 1: Did user upload Student template instead of Tool template?
             if "NIS" in first_rows_text or "Nama Lengkap Siswa" in first_rows_text:
                 flash("Gagal Impor: File yang diunggah adalah Template Siswa, bukan Template Alat Lab! Harap gunakan file Template Import Alat.", "error")
                 return redirect(url_for("admin_tools"))
-            if "Kode Alat" not in first_rows_text and "Nama Alat" not in first_rows_text:
-                flash("Format file tidak sesuai dengan Template Alat resmi. Harap unduh dan gunakan Template Import Alat resmi.", "error")
+
+            # Check 2: Does file contain required Tool columns (Kode/Kode Alat and Nama/Nama Alat)?
+            has_code = any("KODE" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
+            has_name = any("NAMA" in str(cell).upper() for row in first_rows for cell in row if cell is not None)
+
+            if not (has_code and has_name):
+                flash("Gagal Impor: File Excel yang diunggah tidak dikenali sebagai Template Alat LabKeeper. Harap unduh template resmi dari tombol 'Unduh Template'.", "error")
                 return redirect(url_for("admin_tools"))
 
             count_added = 0
