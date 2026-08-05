@@ -20,10 +20,12 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from dotenv import load_dotenv
 
+WIB = timezone(timedelta(hours=7))
+
 
 def utcnow() -> datetime:
-    """Timezone-aware UTC now (Python 3.12+ deprecates naive datetime.utcnow())."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    """Returns naive datetime in Asia/Jakarta timezone (WIB, UTC+7)."""
+    return datetime.now(WIB).replace(tzinfo=None)
 
 from models import db, init_db, Student, Admin, Tool, Borrowing, Config, School
 from datetime_utils import get_config

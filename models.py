@@ -7,6 +7,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
+WIB = timezone(timedelta(hours=7))
+
+
+def wib_now() -> datetime:
+    """Returns naive datetime in Asia/Jakarta timezone (WIB, UTC+7)."""
+    return datetime.now(WIB).replace(tzinfo=None)
+
 
 class School(db.Model):
     __tablename__ = "schools"
@@ -15,7 +22,7 @@ class School(db.Model):
     name = db.Column(db.String(150), nullable=False)
     address = db.Column(db.String(255))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=wib_now)
 
     students = db.relationship("Student", backref="school", lazy=True)
     tools = db.relationship("Tool", backref="school", lazy=True)
@@ -30,7 +37,7 @@ class Admin(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     full_name = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=wib_now)
 
     def set_password(self, raw: str):
         self.password_hash = generate_password_hash(raw)
@@ -55,7 +62,7 @@ class Student(db.Model):
     phone = db.Column(db.String(20))
     avatar_path = db.Column(db.String(255))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=wib_now)
 
     borrowings = db.relationship("Borrowing", backref="student", lazy=True)
 
@@ -94,7 +101,7 @@ class Tool(db.Model):
     qr_path = db.Column(db.String(200))                                         # static/qr_codes/MTR-001.png
     icon = db.Column(db.String(10), default="📦")                              # visual icon
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=wib_now)
 
     borrowings = db.relationship("Borrowing", backref="tool", lazy=True)
 
@@ -137,7 +144,7 @@ class Borrowing(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=True)
     archived_student_name = db.Column(db.String(100))
     archived_student_nis = db.Column(db.String(20))
-    borrow_date = db.Column(db.DateTime, default=datetime.utcnow)
+    borrow_date = db.Column(db.DateTime, default=wib_now)
     deadline = db.Column(db.DateTime, nullable=False)
     return_date = db.Column(db.DateTime)
     status = db.Column(db.String(20), default="active")   # active / returned / overdue
@@ -189,14 +196,14 @@ class Borrowing(db.Model):
         return cfg.loan_duration_hours if cfg else 2
 
     def seconds_remaining(self) -> int:
-        delta = self.deadline - datetime.now(timezone.utc).replace(tzinfo=None)
+        delta = self.deadline - wib_now()
         return int(delta.total_seconds())
 
     def is_overdue(self) -> bool:
         return self.seconds_remaining() < 0
 
     def elapsed_seconds(self) -> int:
-        delta = datetime.now(timezone.utc).replace(tzinfo=None) - self.borrow_date
+        delta = wib_now() - self.borrow_date
         return int(delta.total_seconds())
 
 

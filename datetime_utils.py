@@ -1,14 +1,16 @@
-"""LabKeeper — Date/time & config helpers (avoid repeated None-checks everywhere)"""
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# WIB (Waktu Indonesia Barat / Asia/Jakarta) timezone (UTC+7)
+WIB = timezone(timedelta(hours=7))
 
 
 def utcnow():
-    """Non-deprecated replacement for ``datetime.utcnow``.
+    """Returns naive datetime in Asia/Jakarta timezone (WIB, UTC+7).
 
-    We keep naive datetimes internally because the existing DB rows are naive;
-    mixing aware/naive would cause comparison errors in SQLAlchemy + SQLite.
+    We keep naive datetimes internally for SQLite compatibility while ensuring
+    timestamps match Jakarta, Indonesia time.
     """
-    return datetime.now()
+    return datetime.now(WIB).replace(tzinfo=None)
 
 
 def get_config():

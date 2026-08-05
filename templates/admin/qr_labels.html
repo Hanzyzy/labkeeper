@@ -42,14 +42,14 @@
 
   <div class="bento-grid" id="qrLabelGrid" style="grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));width:100%;gap:16px;">
     {% for tool in tools %}
-    <div class="qr-label" id="qr-card-{{ tool.code }}" data-tool-code="{{ tool.code }}">
+    <div class="qr-label" id="qr-card-{{ tool.id }}" data-tool-code="{{ tool.code }}">
       <div class="bezel-card" style="height:100%;border:1px solid var(--line);">
         <div class="bezel-card-inner" style="padding:1rem;display:flex;flex-direction:column;align-items:center;text-align:center;gap:0.5rem;">
           
           <!-- Selection Pill -->
-          <label class="qr-select-pill no-print" for="cb-{{ tool.code }}" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg);border:1px solid var(--line);padding:6px 12px;border-radius:6px;width:100%;cursor:pointer;user-select:none;transition:all 0.2s ease;">
-            <input type="checkbox" class="qr-checkbox" id="cb-{{ tool.code }}" onchange="updatePrintSelection()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ink);">
-            <span style="font-size:0.75rem;font-weight:700;color:var(--ink-2);" id="label-text-{{ tool.code }}">Pilih Cetak</span>
+          <label class="qr-select-pill no-print" for="cb-{{ tool.id }}" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg);border:1px solid var(--line);padding:6px 12px;border-radius:6px;width:100%;cursor:pointer;user-select:none;transition:all 0.2s ease;">
+            <input type="checkbox" class="qr-checkbox" id="cb-{{ tool.id }}" onchange="updatePrintSelection()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ink);">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--ink-2);" class="qr-select-text">Pilih Cetak</span>
           </label>
 
           <div style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);font-weight:600;margin-top:2px;">{{ tool.code }}</div>
@@ -94,7 +94,7 @@ function updatePrintSelection() {
   checkboxes.forEach(cb => {
     const card = cb.closest('.qr-label');
     const pill = card.querySelector('.qr-select-pill');
-    const textSpan = card.querySelector('#label-text-' + cb.id.replace('cb-', ''));
+    const textSpan = card.querySelector('.qr-select-text');
 
     if (cb.checked) {
       selected++;
