@@ -457,14 +457,30 @@ select option {
 }
 
 .nav-bar-logo-link img {
-  height: 60px;
-  width: auto;
+  height: 52px;
+  max-height: 52px;
+  width: auto !important;
+  max-width: 100%;
+  object-fit: contain !important;
+  flex-shrink: 0;
   transition: transform 0.3s ease;
   display: block;
 }
 
 .nav-bar-logo-link:hover img {
   transform: scale(1.05);
+}
+
+/* Universal Anti-Distortion Protection for Logos across all screens & DPIs */
+img[src*="logo.png"],
+.nav-bar-logo img,
+.nav-bar-logo-link img,
+.login-logo img,
+.admin-sidebar-brand img {
+  width: auto !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
 }
 
 .nav-bar-theme-toggle {
@@ -1836,7 +1852,7 @@ footer p {
   }
   .nav-bar-link:not(.nav-bar-btn):not(.nav-bar-logo-link) { display: none; }
   .nav-bar-btn { padding: 6px 14px; font-size: 13px; }
-  .nav-bar-logo-link img { height: 60px; }
+  .nav-bar-logo-link img { height: 44px; max-height: 44px; width: auto !important; object-fit: contain !important; }
 
   .tools-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
