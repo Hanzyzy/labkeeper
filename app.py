@@ -1573,10 +1573,43 @@ def create_app() -> Flask:
         admin = current_admin()
         cfg = Config.get_solo()
         if request.method == "POST":
-            cfg.loan_duration_hours = int(request.form.get("duration_hours", 24))
+            # 1. Update Durasi Peminjaman Default
+            duration = request.form.get("duration_hours")
+            if duration:
+                try:
+                    cfg.loan_duration_hours = max(1, int(duration))
+                except ValueError:
+                    pass
+
+            # 2. Update Password Admin (jika diisi)
+            current_pw = request.form.get("current_password", "").strip()
+            new_pw = request.form.get("new_password", "").strip()
+            confirm_pw = request.form.get("confirm_password", "").strip()
+
+            if new_pw or current_pw or confirm_pw:
+                if not current_pw:
+                    flash("Masukkan password lama Anda untuk mengubah password.", "error")
+                    return redirect(url_for("admin_settings"))
+                if not admin.check_password(current_pw):
+                    flash("Password lama yang Anda masukkan salah.", "error")
+                    return redirect(url_for("admin_settings"))
+                if not new_pw:
+                    flash("Password baru tidak boleh kosong.", "warning")
+                    return redirect(url_for("admin_settings"))
+                if len(new_pw) < 6:
+                    flash("Password baru minimal 6 karakter.", "warning")
+                    return redirect(url_for("admin_settings"))
+                if new_pw != confirm_pw:
+                    flash("Konfirmasi password baru tidak cocok.", "warning")
+                    return redirect(url_for("admin_settings"))
+
+                admin.set_password(new_pw)
+                flash("Password Admin berhasil diperbarui!", "success")
+
             db.session.commit()
-            flash("Pengaturan disimpan.", "success")
+            flash("Pengaturan berhasil disimpan.", "success")
             return redirect(url_for("admin_settings"))
+
         return render_template("admin/settings.html", settings=cfg, admin=admin)
 
     @app.route("/admin/reset-borrowings")
