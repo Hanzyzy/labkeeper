@@ -43,7 +43,21 @@ class Admin(db.Model):
         self.password_hash = generate_password_hash(raw)
 
     def check_password(self, raw: str) -> bool:
-        return check_password_hash(self.password_hash, raw)
+        if not self.password_hash:
+            return False
+        if not self.password_hash.startswith(("scrypt:", "pbkdf2:")):
+            if self.password_hash == raw:
+                self.set_password(raw)
+                try:
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                return True
+            return False
+        try:
+            return check_password_hash(self.password_hash, raw)
+        except Exception:
+            return False
 
     @property
     def school_name(self):
@@ -70,7 +84,21 @@ class Student(db.Model):
         self.password_hash = generate_password_hash(raw)
 
     def check_password(self, raw: str) -> bool:
-        return check_password_hash(self.password_hash, raw)
+        if not self.password_hash:
+            return False
+        if not self.password_hash.startswith(("scrypt:", "pbkdf2:")):
+            if self.password_hash == raw:
+                self.set_password(raw)
+                try:
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                return True
+            return False
+        try:
+            return check_password_hash(self.password_hash, raw)
+        except Exception:
+            return False
 
     @property
     def school_name(self):
