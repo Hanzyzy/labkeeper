@@ -77,7 +77,7 @@
             <div class="form-group" style="margin:0;">
               <label class="form-label" style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Durasi Default Peminjaman (Jam)</label>
               <div style="display:flex;gap:8px;align-items:center;">
-                <input type="number" id="durationInput" name="duration_hours" class="form-input" value="{{ settings.loan_duration_hours }}" min="1" max="168" style="font-size:1.1rem;font-weight:800;width:120px;text-align:center;">
+                <input type="number" id="durationInput" name="duration_hours" class="form-input" value="{{ school.loan_duration_hours if (school and school.loan_duration_hours) else settings.loan_duration_hours }}" min="1" max="168" style="font-size:1.1rem;font-weight:800;width:120px;text-align:center;">
                 <span style="font-size:0.875rem;font-weight:700;color:var(--ink-2);">Jam</span>
               </div>
               <div class="form-hint" style="font-size:0.75rem;margin-top:6px;line-height:1.4;">

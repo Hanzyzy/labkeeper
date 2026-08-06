@@ -296,7 +296,7 @@ def create_app() -> Flask:
 
         if request.method == "POST":
             notes = request.form.get("notes", "").strip()
-            hours = get_config().loan_duration_hours
+            hours = Borrowing.default_deadline_hours(student.school_id if student else tool.school_id)
             new = Borrowing(
                 school_id=student.school_id or tool.school_id,
                 tool_id=tool.id,
@@ -310,7 +310,7 @@ def create_app() -> Flask:
             flash(f"Berhasil meminjam {tool.name}. Kembalikan sebelum {new.deadline.strftime('%H:%M')}.", "success")
             return redirect(url_for("tool_detail", code=code))
 
-        hours = get_config().loan_duration_hours
+        hours = Borrowing.default_deadline_hours(student.school_id if student else tool.school_id)
         return render_template("pinjam.html", tool=tool, duration_hours=hours)
 
     @app.route("/kembalikan/<code>", methods=["POST"])
@@ -1571,13 +1571,19 @@ def create_app() -> Flask:
     @admin_required
     def admin_settings():
         admin = current_admin()
+        school_id = admin.school_id or 1
+        school = School.query.get(school_id)
         cfg = Config.get_solo()
         if request.method == "POST":
-            # 1. Update Durasi Peminjaman Default
+            # 1. Update Durasi Peminjaman Khusus Sekolah Ini
             duration = request.form.get("duration_hours")
             if duration:
                 try:
-                    cfg.loan_duration_hours = max(1, int(duration))
+                    val = max(1, int(duration))
+                    if school:
+                        school.loan_duration_hours = val
+                    if cfg and school_id == 1:
+                        cfg.loan_duration_hours = val
                 except ValueError:
                     pass
 
@@ -1610,7 +1616,7 @@ def create_app() -> Flask:
             flash("Pengaturan berhasil disimpan.", "success")
             return redirect(url_for("admin_settings"))
 
-        return render_template("admin/settings.html", settings=cfg, admin=admin)
+        return render_template("admin/settings.html", settings=cfg, admin=admin, school=school)
 
     @app.route("/admin/reset-borrowings")
     @admin_required

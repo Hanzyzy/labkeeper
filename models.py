@@ -21,6 +21,7 @@ class School(db.Model):
     code = db.Column(db.String(30), unique=True, nullable=False, index=True)
     name = db.Column(db.String(150), nullable=False)
     address = db.Column(db.String(255))
+    loan_duration_hours = db.Column(db.Integer, default=2, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=wib_now)
 
@@ -219,7 +220,11 @@ class Borrowing(db.Model):
         return self.return_date
 
     @staticmethod
-    def default_deadline_hours() -> int:
+    def default_deadline_hours(school_id=None) -> int:
+        if school_id:
+            sch = School.query.get(school_id)
+            if sch and getattr(sch, 'loan_duration_hours', None):
+                return sch.loan_duration_hours
         cfg = Config.get_solo()
         return cfg.loan_duration_hours if cfg else 2
 
@@ -253,6 +258,13 @@ def init_db(app):
     db.init_app(app)
     with app.app_context():
         db.create_all()
+
+        # Auto-migrate loan_duration_hours column in schools table if missing
+        try:
+            db.session.execute(db.text("ALTER TABLE schools ADD COLUMN loan_duration_hours INTEGER DEFAULT 2"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         
         # Seed default schools if empty
         if School.query.count() == 0:
