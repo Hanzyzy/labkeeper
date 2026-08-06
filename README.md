@@ -1,166 +1,160 @@
-# 🔬 LabKeeper
+# 🔬 LabKeeper — Sistem Manajemen Peminjaman Alat Lab Sekolah
 
-Sistem peminjaman alat lab sekolah berbasis QR Code untuk Android & iOS.
-Stack: Flask + SQLite (zero-cost, jalan di laptop sekolah).
-
----
-
-## ✨ Fitur
-
-### Untuk Siswa
-- 📱 **Scan QR** di belakang alat → langsung lihat status & foto alat (pakai kamera HP)
-- 🔐 Login pakai **NIS** untuk pinjam/kembalikan
-- ⏱️ Lihat **countdown real-time** berapa lama lagi harus dikembalikan
-- 📜 Riwayat peminjaman pribadi
-
-### Untuk Admin (Laboran)
-- 📊 Dashboard dengan **live countdown** semua peminjaman aktif
-- 📦 CRUD alat lengkap dengan auto-generate QR code
-- 👥 Kelola data siswa + reset password
-- 🚨 Force-return alat telat + catat kondisi (Baik/Rusak Ringan/Rusak Berat)
-- 🏷️ Cetak halaman QR label (semua alat) untuk print & tempel
-- ⚙️ Pengaturan: nama sekolah, base URL, durasi pinjam
+**LabKeeper** adalah platform web manajemen peminjaman alat laboratorium sekolah berbasis QR Code yang mendukung arsitektur **Multi-Sekolah (Multi-Tenant)**. Aplikasi ini dirancang mobile-first, responsif, modern, dan sangat mudah digunakan oleh siswa maupun pengelola lab (laboran/admin).
 
 ---
 
-## 🚀 Quick Start (lokal / demo)
+## ✨ Fitur-Fitur Utama
 
-```bash
-# 1. Setup
-cd labkeeper
-python -m venv venv
-source venv/Scripts/activate        # Windows (Git Bash)
-# source venv/bin/activate          # macOS / Linux
+### 🏫 1. Multi-Sekolah (Multi-Tenant) Terisolasi
+* **Isolasi Data Per Sekolah**: Setiap sekolah memiliki data alat, siswa, admin, serta riwayat peminjaman yang terisolasi 100%.
+* **Aturan Durasi Peminjaman Independen (`School.loan_duration_hours`)**: Admin Sekolah A dapat menetapkan durasi peminjaman (misal 3 jam) tanpa mempengaruhi aturan di Sekolah B (misal 24 jam).
+* **Manajemen Multi-Sekolah Mudah**: Dilengkapi script interaktif `add_school.py` untuk mendaftarkan sekolah dan akun admin baru secara instan.
 
-pip install -r requirements.txt
+### 📱 2. Fitur Siswa
+* **Scan QR Code Alat**: Peminjaman alat secara otomatis melalui pemindaian QR Code dari kamera HP (Android & iOS).
+* **Live Countdown Timer**: Penghitung waktu mundur peminjaman secara real-time.
+* **Perpanjangan Waktu Peminjaman**: Permohonan perpanjangan durasi pinjam langsung dari dashboard siswa (maksimal 2x perpanjangan).
+* **Profil & Keamanan**: Pengubahan kata sandi siswa dengan invalidasi sesi multi-perangkat (password versioning).
 
-# 2. Seed data (admin + 20 alat + 5 siswa + 1 sample loan)
-python seed.py
+### 🛠️ 3. Fitur Admin (Laboran)
+* **Dashboard Live Monitoring**: Monitoring peminjaman aktif dengan indikator warna status (*Aktif / Kembali / Overdue*).
+* **CRUD Alat Lab & Auto-Generate QR Code**: Pembuatan alat baru dengan QR Code PNG yang digenerate otomatis.
+* **Cetak Label QR Code**: Fitur pencetakan massal atau terpilih untuk stiker label QR alat lab.
+* **Import & Export Excel (`.xlsx`)**: Import massal data siswa dan alat lab via file Excel beserta preview validasi data.
+* **Pengaturan Sistem & Keamanan**: Pengubahan kata sandi admin dengan enkripsi aman, serta pemeliharaan data.
 
-# 3. Jalankan
-python app.py
-```
-
-Buka di browser:
-- **Siswa**: http://localhost:5000
-- **Admin**: http://localhost:5000/admin/login
-  - username: `admin`
-  - password: `admin123`
-
-Siswa contoh:
-- NIS: `1001` s/d `1005`
-- Password: `siswa123`
+### 🌐 4. Integrated Web Database Management (`sqlite-web`)
+* **Web Database GUI 24/7**: Terintegrasi dengan `sqlite-web` service di port `8080` untuk pengelolaan SQLite via browser.
+* **Proteksi Password**: Dilengkapi sistem autentikasi password terenkripsi untuk keamanan akses web database.
 
 ---
 
-## 📱 Cara Pakai di HP Siswa (WiFi Sekolah)
+## 🛠️ Arsitektur & Teknologi (Tech Stack)
 
-1. Jalankan server di laptop laboran: `python app.py`
-   - Catat IP laptop (misal `192.168.1.10`) — server jalan di `0.0.0.0:5000`
-2. Siswa konek WiFi sekolah yang sama
-3. Buka di HP: `http://192.168.1.10:5000`
-4. **Bookmark** atau "Add to Home Screen" supaya iconnya muncul di home screen seperti aplikasi native
-5. Scan QR yang ditempel di belakang alat → otomatis login (kalau sudah) → pinjam
-
-> 💡 Untuk **HTTPS** (diperlukan agar kamera bisa jalan di iOS Safari & Chrome Android non-localhost), pakai:
-> - **Cloudflare Tunnel** (gratis): `cloudflared tunnel --url http://localhost:5000`
-> - **ngrok**: `ngrok http 5000`
+| Komponen | Teknologi / Library |
+|---|---|
+| **Core Framework** | Python 3.11 / Flask 3.0 |
+| **Database & ORM** | SQLite 3 / Flask-SQLAlchemy 3.1 |
+| **Authentikasi** | Werkzeug Security (Scrypt & PBKDF2 Password Hashing) |
+| **QR Code Engine** | `qrcode[pil]` (Pillow Image Generator) |
+| **Excel Engine** | `openpyxl` (Import & Styled Export) |
+| **Zona Waktu** | `Asia/Jakarta` (Waktu Indonesia Barat / WIB - UTC+7) |
+| **Frontend Layout** | Jinja2 Templates, HTML5 Semantic, Custom Vanilla CSS (Bento Grid) |
+| **Production Server** | Gunicorn (3 Workers) + Nginx Reverse Proxy + Certbot SSL |
 
 ---
 
-## 🗂️ Struktur File
+## 🗂️ Struktur Direktori Proyek
 
-```
+```text
 labkeeper/
-├── app.py                    # Main Flask app (routes, factory pattern)
-├── models.py                 # SQLAlchemy models (Student, Admin, Tool, Borrowing, Config)
-├── auth.py                   # Decorators: @student_required, @admin_required
-├── qr_utils.py               # QR generation (qrcode + PIL)
-├── seed.py                   # Database seeding script
-├── requirements.txt
-├── README.md
-├── PROJECT_TREE.md
+├── app.py                  # Main Flask Application (Routes & Logic)
+├── models.py               # SQLAlchemy ORM Models (School, Admin, Student, Tool, Borrowing, Config)
+├── auth.py                 # Authentication Helpers & Session Decorators
+├── datetime_utils.py       # Timezone WIB (Asia/Jakarta) Helpers & Utilities
+├── qr_utils.py             # QR Code Generator using Pillow
+├── reset_db.py             # Script Reset & Seeding Initial Data
+├── add_school.py           # Script Interaktif Tambah Sekolah & Admin Baru
+├── fix_db.py               # Script Perbaikan Format Tanggal Database
+├── deploy_vps.sh           # Script Deployment VPS Otomatis
+├── requirements.txt        # Python Dependencies
+├── README.md               # Dokumentasi Resmi Proyek
 │
-├── instance/labkeeper.db     # SQLite database (auto-created by Flask-SQLAlchemy)
+├── instance/
+│   └── labkeeper.db        # File Database SQLite
 │
 ├── static/
-│   ├── css/app.css           # Mobile-first styles
-│   ├── js/countdown.js       # Live countdown JS (vanilla)
-│   └── qr_codes/*.png        # Auto-generated QR per tool
+│   ├── css/new_style.css   # Custom CSS Styling & Responsive Design
+│   ├── js/countdown.js     # Live Countdown Timer Vanilla JS
+│   ├── images/             # Asset Gambar Logo & Hero Banner
+│   ├── qr_codes/           # File Gambar PNG QR Code Alat Lab
+│   └── uploads/            # File Avatar Siswa & Foto Alat
 │
 └── templates/
-    ├── base.html             # Public base layout
-    ├── admin_base.html       # Admin base layout (sidebar)
-    ├── index.html            # Homepage (list semua alat)
-    ├── scan.html             # QR scanner page (jsQR)
-    ├── tool_detail.html      # Halaman alat (lihat detail + pinjam/kembalikan)
-    ├── login.html            # Student login
-    ├── pinjam.html           # Konfirmasi pinjam
-    ├── history.html          # Riwayat siswa
-    ├── admin/
-    │   ├── admin_login.html
-    │   ├── dashboard.html    # ⭐ Live countdown dashboard
-    │   ├── tools_list.html
-    │   ├── tool_form.html
-    │   ├── borrowings_list.html
-    │   ├── students_list.html
-    │   ├── student_form.html
-    │   ├── qr_labels.html    # Print semua QR
-    │   └── settings.html
-    └── (admin_*.html lain di root juga OK, strukturnya fleksibel)
+    ├── base.html           # Public Base Layout Template
+    ├── admin_base.html     # Admin Sidebar Base Template
+    ├── index.html          # Halaman Beranda & Katalog Sekolah
+    ├── scan.html           # Halaman Scanner QR Code
+    ├── tool_detail.html    # Detail Alat Lab
+    ├── login.html          # Login Siswa
+    ├── pinjam.html         # Form Konfirmasi Pinjam
+    ├── history.html        # Riwayat Peminjaman Siswa
+    └── admin/
+        ├── admin_login.html# Login Admin Sekolah
+        ├── dashboard.html  # Live Dashboard Monitoring
+        ├── tools.html      # Kelola Alat Lab
+        ├── tool_form.html  # Form Tambah/Edit Alat
+        ├── students.html   # Kelola Data Siswa
+        ├── borrowings.html # Kelola & Export Peminjaman
+        ├── qr_labels.html  # Cetak Label QR Code
+        └── settings.html  # Pengaturan Sistem & Keamanan
 ```
 
 ---
 
-## 🔌 API Endpoints
+## 🚀 Panduan Penggunaan Script Pembantu
 
-| Endpoint | Method | Auth | Fungsi |
-|---|---|---|---|
-| `/` | GET | - | Homepage, list alat |
-| `/tool/<code>` | GET | - | Detail alat publik |
-| `/scan` | GET | - | Halaman QR scanner |
-| `/student/login` | GET/POST | - | Login siswa |
-| `/logout` | GET | - | Logout |
-| `/pinjam/<code>` | GET/POST | Student | Pinjam alat |
-| `/kembalikan/<code>` | POST | Student | Kembalikan alat |
-| `/riwayat` | GET | Student | Riwayat pribadi |
-| `/admin/login` | GET/POST | - | Login admin |
-| `/admin/dashboard` | GET | Admin | Dashboard live |
-| `/admin/tools` `/new` `<id>/edit` `<id>/regenerate-qr` `<id>/delete` | GET/POST | Admin | CRUD alat |
-| `/admin/borrowings` `<bid>/force-return` | GET/POST | Admin | Kelola peminjaman |
-| `/admin/students` `/new` `<sid>/reset-password` | GET/POST | Admin | Kelola siswa |
-| `/admin/qr-labels` | GET | Admin | Print semua QR |
-| `/admin/settings` | GET/POST | Admin | Pengaturan |
-| `/api/active-borrowings` | GET | Admin | JSON untuk AJAX |
+### 1. Menambah Sekolah & Admin Baru (CLI Interaktif)
+```bash
+cd /var/www/labkeeper
+source venv/bin/activate
+python3 add_school.py
+```
+
+### 2. Reset & Seed Data Awal
+```bash
+python3 reset_db.py
+```
+
+### 3. Memperbaiki Format Tanggal SQLite (jika di-input manual)
+```bash
+python3 fix_db.py
+```
 
 ---
 
-## ⚙️ Konfigurasi
+## 🌐 Layanan Web GUI Database Management (`sqlite-web`)
 
-Edit file `.env` (opsional):
+Untuk mengakses GUI database berbasis browser (mirip phpMyAdmin):
+
+* **URL**: `http://IP_VPS_ANDA:8080` (Contoh: `http://43.129.49.162:8080`)
+* **Password**: `262010`
+
+### Menjalankan Service Nonstop (Systemd):
+```bash
+echo '[Unit]
+Description=SQLite Web GUI Manager for LabKeeper
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/var/www/labkeeper
+Environment="SQLITE_WEB_PASSWORD=262010"
+ExecStart=/var/www/labkeeper/venv/bin/python3 -m sqlite_web /var/www/labkeeper/instance/labkeeper.db --port 8080 --host 0.0.0.0 --password
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target' | sudo tee /etc/systemd/system/sqlite-web.service > /dev/null
+
+sudo systemctl daemon-reload
+sudo systemctl restart sqlite-web
+```
+
+---
+
+## ⚡ Deployment & Update Cepat di VPS
+
+Untuk memperbarui aplikasi ke versi terbaru di server VPS:
 
 ```bash
-SECRET_KEY=ganti-dengan-string-random-32-char
+cd /var/www/labkeeper
+git pull && sudo systemctl restart labkeeper
 ```
-
-Atau langsung edit `app.py` bagian `app.config["SECRET_KEY"]`.
-
-Untuk **ganti URL QR** (misal sudah deploy ke internet), buka `/admin/settings` setelah login sebagai admin.
-
----
-
-## 🔐 Catatan Keamanan (untuk produksi)
-
-Sistem ini di-rancang untuk **lingkungan intranet sekolah** (WiFi lokal). Kalau mau expose ke internet:
-
-- [ ] **Ganti `SECRET_KEY`** dengan string random
-- [ ] **HTTPS wajib** — pakai Cloudflare Tunnel / Let's Encrypt
-- [ ] Ganti `admin123` / `siswa123` password default
-- [ ] Tambah rate limiting (Flask-Limiter)
-- [ ] Ganti SQLite → PostgreSQL untuk concurrency lebih tinggi
 
 ---
 
 ## 📜 Lisensi
 
-MIT — bebas dipakai, dimodifikasi, disebarluaskan untuk kebutuhan edukasi Indonesia.
+Dokumen dan kode sumber **LabKeeper** dilindungi di bawah lisensi MIT — bebas digunakan, dikembangkan, dan disebarluaskan untuk kebutuhan pendidikan di Indonesia.
