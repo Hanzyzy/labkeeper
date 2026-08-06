@@ -158,6 +158,71 @@
 
   </form>
 
+  <!-- Section 4: Add New School & Admin (Multi-Tenant Management) -->
+  <div class="bezel-card reveal reveal-delay-2" style="margin-top:2rem;">
+    <div class="bezel-card-inner" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;border-bottom:1px solid var(--line);padding-bottom:0.75rem;">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(59, 130, 246, 0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid rgba(59, 130, 246, 0.2);">🏫</div>
+        <div>
+          <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0;">Tambah Sekolah & Admin Baru</h3>
+          <span style="font-size:0.75rem;color:var(--muted);">Daftarkan sekolah dan akun pengelola lab baru secara langsung dari browser</span>
+        </div>
+      </div>
+
+      <form method="POST" action="/admin/add-school" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Nama Sekolah *</label>
+          <input type="text" name="name" class="form-input" placeholder="Misal: SMKN 2 Bandung" required>
+        </div>
+
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Kode Sekolah (Singkatan) *</label>
+          <input type="text" name="code" class="form-input" placeholder="Misal: SMKN2-BDG" required style="text-transform:uppercase;">
+        </div>
+
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Alamat Sekolah</label>
+          <input type="text" name="address" class="form-input" placeholder="Jl. Cihampelas No. 12">
+        </div>
+
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Username Admin Baru *</label>
+          <input type="text" name="username" class="form-input" placeholder="Misal: admin_smkn2" required>
+        </div>
+
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Password Admin Baru *</label>
+          <input type="password" name="password" class="form-input" placeholder="Password admin" required>
+        </div>
+
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:0.8125rem;font-weight:700;color:var(--ink);">Nama Lengkap Admin</label>
+          <input type="text" name="full_name" class="form-input" placeholder="Misal: Budi Santoso, S.Kom">
+        </div>
+
+        <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;margin-top:0.5rem;">
+          <button type="submit" class="btn btn-primary" style="font-weight:700;padding:10px 24px;background:#2563EB;">
+            + Buat Sekolah & Admin Baru
+          </button>
+        </div>
+      </form>
+
+      {% if all_schools %}
+      <div style="margin-top:1.5rem;border-top:1px dashed var(--line);padding-top:1rem;">
+        <label style="font-size:0.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Daftar Sekolah Terdaftar ({{ all_schools|length }}):</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          {% for sch in all_schools %}
+          <span class="badge" style="background:var(--bg);border:1px solid var(--line);color:var(--ink);font-weight:600;padding:4px 10px;font-size:0.75rem;">
+            🏫 {{ sch.name }} ({{ sch.code }})
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
 </div>
 
 {% endblock %}

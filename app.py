@@ -68,6 +68,27 @@ def create_app() -> Flask:
             "random_int": random.randint(10000, 99999),
         }
 
+    # ============= TEMPLATE FILTERS & ERROR HANDLERS =============
+    @app.template_filter("timesince")
+    def timesince_filter(dt):
+        if not dt:
+            return ""
+        now = utcnow()
+        diff = (now - dt).total_seconds()
+        return _humanize_seconds(int(diff))
+
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        flash("Terjadi kesalahan internal pada server. Silakan coba beberapa saat lagi.", "error")
+        return redirect(url_for("index"))
+
+    @app.errorhandler(404)
+    def page_not_found(e):
+        return redirect(url_for("index"))
+
     # ============= PUBLIC ROUTES (no login) =============
     @app.route("/")
     def index():
@@ -371,6 +392,7 @@ def create_app() -> Flask:
         return render_template(
             "extend_confirm.html",
             borrowing=borrowing,
+            tool=borrowing.tool,
             loan_duration_hours=get_config().loan_duration_hours,
             can_extend=can_extend,
             extend_count=extend_count,
@@ -509,26 +531,30 @@ def create_app() -> Flask:
                 flash(f"Kode {code} sudah dipakai di sekolah ini.", "error")
                 return redirect(url_for("admin_tools"))
             
-            tool = Tool(
-                school_id=school_id, 
-                code=code, 
-                name=name, 
-                category=category, 
-                lab_location=lab_location, 
-                condition=condition, 
-                description=description, 
-                icon=icon
-            )
-            db.session.add(tool)
-            db.session.commit()
             try:
-                qr_path = generate_qr_for_tool(tool)
-                tool.qr_path = qr_path
+                tool = Tool(
+                    school_id=school_id, 
+                    code=code, 
+                    name=name, 
+                    category=category, 
+                    lab_location=lab_location, 
+                    condition=condition, 
+                    description=description, 
+                    icon=icon
+                )
+                db.session.add(tool)
                 db.session.commit()
+                try:
+                    qr_path = generate_qr_for_tool(tool)
+                    tool.qr_path = qr_path
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f"Alat ditambahkan tapi QR gagal di-generate: {e}", "warning")
+                flash(f"Alat {tool.name} ditambahkan.", "success")
             except Exception as e:
                 db.session.rollback()
-                flash(f"Alat ditambahkan tapi QR gagal di-generate: {e}", "warning")
-            flash(f"Alat {tool.name} ditambahkan.", "success")
+                flash(f"Gagal menambahkan alat: {e}", "error")
             return redirect(url_for("admin_tools"))
         
         elif action == "update":
@@ -888,10 +914,6 @@ def create_app() -> Flask:
                 )
             )
         students = query.order_by(Student.class_name, Student.name).all()
-        for s in students:
-            s.active_borrowings_count = Borrowing.query.filter_by(
-                student_id=s.id, status='active'
-            ).count()
         return render_template("admin/students.html", students=students, search=search, status_filter=status_filter, admin=admin)
 
     @app.route("/admin/students/action", methods=["POST"])
@@ -913,11 +935,15 @@ def create_app() -> Flask:
             if Student.query.filter_by(school_id=school_id, nis=nis).first():
                 flash(f"NIS {nis} sudah terdaftar di sekolah ini.", "error")
                 return redirect(url_for("admin_students"))
-            s = Student(school_id=school_id, nis=nis, name=name, class_name=class_name)
-            s.set_password(password)
-            db.session.add(s)
-            db.session.commit()
-            flash(f"Siswa {s.name} ditambahkan.", "success")
+            try:
+                s = Student(school_id=school_id, nis=nis, name=name, class_name=class_name)
+                s.set_password(password)
+                db.session.add(s)
+                db.session.commit()
+                flash(f"Siswa {s.name} ditambahkan.", "success")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Gagal menambahkan siswa: {e}", "error")
             return redirect(url_for("admin_students"))
         
         elif action == "update":
@@ -1616,7 +1642,51 @@ def create_app() -> Flask:
             flash("Pengaturan berhasil disimpan.", "success")
             return redirect(url_for("admin_settings"))
 
-        return render_template("admin/settings.html", settings=cfg, admin=admin, school=school)
+        all_schools = School.query.order_by(School.name).all()
+        return render_template("admin/settings.html", settings=cfg, admin=admin, school=school, all_schools=all_schools)
+
+    @app.route("/admin/add-school", methods=["POST"])
+    @admin_required
+    def admin_add_school():
+        name = request.form.get("name", "").strip()
+        code = request.form.get("code", "").strip().upper()
+        address = request.form.get("address", "").strip()
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        full_name = request.form.get("full_name", "").strip() or f"Admin {name}"
+
+        if not name or not code or not username or not password:
+            flash("Nama sekolah, kode sekolah, username, dan password admin wajib diisi!", "error")
+            return redirect(url_for("admin_settings"))
+
+        # Check existing school code
+        existing_school = School.query.filter_by(code=code).first()
+        if existing_school:
+            flash(f"Kode sekolah '{code}' sudah terdaftar ({existing_school.name}). Gunakan kode lain.", "error")
+            return redirect(url_for("admin_settings"))
+
+        # Check existing admin username
+        existing_admin = Admin.query.filter_by(username=username).first()
+        if existing_admin:
+            flash(f"Username admin '{username}' sudah digunakan. Gunakan username lain.", "error")
+            return redirect(url_for("admin_settings"))
+
+        try:
+            new_school = School(code=code, name=name, address=address, loan_duration_hours=2, is_active=True)
+            db.session.add(new_school)
+            db.session.commit()
+
+            new_admin = Admin(school_id=new_school.id, username=username, full_name=full_name)
+            new_admin.set_password(password)
+            db.session.add(new_admin)
+            db.session.commit()
+
+            flash(f"Berhasil! Sekolah '{name}' ({code}) & Admin '{username}' telah dibuat.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Gagal menambahkan sekolah: {e}", "error")
+
+        return redirect(url_for("admin_settings"))
 
     @app.route("/admin/reset-borrowings")
     @admin_required
