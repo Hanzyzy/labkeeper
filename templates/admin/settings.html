@@ -14,8 +14,9 @@
       </p>
     </div>
     <div>
-      <span class="badge" style="background:var(--paper);border:1px solid var(--line);color:var(--ink);font-weight:700;padding:6px 14px;border-radius:999px;font-size:0.8125rem;">
-        🏫 {{ admin.school_name }}
+      <span class="badge" style="background:var(--paper);border:1px solid var(--line);color:var(--ink);font-weight:700;padding:6px 14px;border-radius:999px;font-size:0.8125rem;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 7v14M21 7v14M6 21V11M18 21V11M12 21V7M12 3l9 4H3l9-4z"/></svg>
+        {{ admin.school_name }}
       </span>
     </div>
   </div>
@@ -28,7 +29,9 @@
       <div class="bezel-card" style="height:100%;">
         <div class="bezel-card-inner" style="padding:1.5rem;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;border-bottom:1px solid var(--line);padding-bottom:0.75rem;">
-            <div style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid var(--line);">🔒</div>
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;border:1px solid var(--line);color:var(--ink);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
             <div>
               <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0;">Keamanan & Akun Admin</h3>
               <span style="font-size:0.75rem;color:var(--muted);">Ganti kata sandi akun admin sekolah</span>
@@ -66,7 +69,9 @@
       <div class="bezel-card" style="height:100%;">
         <div class="bezel-card-inner" style="padding:1.5rem;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;border-bottom:1px solid var(--line);padding-bottom:0.75rem;">
-            <div style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid var(--line);">⏱️</div>
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;border:1px solid var(--line);color:var(--ink);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
             <div>
               <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0;">Aturan Peminjaman</h3>
               <span style="font-size:0.75rem;color:var(--muted);">Pengaturan waktu otomatis peminjaman</span>
@@ -97,7 +102,7 @@
             </div>
 
             <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:0.8125rem;color:var(--ink-2);line-height:1.4;margin-top:auto;">
-              💡 <strong>Tips:</strong> Siswa juga dapat meminta perpanjangan waktu melalui akun siswa jika belum mencapai batas maksimal perpanjangan (2x).
+              <strong>Catatan:</strong> Siswa dapat mengajukan perpanjangan waktu peminjaman maksimal 2 kali per transaksi.
             </div>
           </div>
         </div>
@@ -109,7 +114,9 @@
     <div class="bezel-card" style="margin-bottom:2rem;">
       <div class="bezel-card-inner" style="padding:1.5rem;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;border-bottom:1px solid var(--line);padding-bottom:0.75rem;">
-          <div style="width:32px;height:32px;border-radius:8px;background:rgba(220, 38, 38, 0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid rgba(220, 38, 38, 0.2);">🛠️</div>
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(220, 38, 38, 0.06);display:flex;align-items:center;justify-content:center;border:1px solid rgba(220, 38, 38, 0.2);color:#DC2626;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
           <div>
             <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0;">Pemeliharaan Sistem & QR Code</h3>
             <span style="font-size:0.75rem;color:var(--muted);">Aksi perawatan data laboratorium</span>
@@ -121,7 +128,10 @@
           <!-- Generate QR Card -->
           <div style="border:1px solid var(--line);border-radius:8px;padding:1rem;background:var(--bg);display:flex;flex-direction:column;justify-content:space-between;gap:1rem;">
             <div>
-              <div style="font-weight:700;font-size:0.875rem;color:var(--ink);margin-bottom:4px;">🔄 Refresh Semua Gambar QR Code</div>
+              <div style="font-weight:700;font-size:0.875rem;color:var(--ink);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Refresh Gambar QR Code
+              </div>
               <div style="font-size:0.75rem;color:var(--muted);line-height:1.4;">
                 Buat ulang seluruh file PNG QR Code untuk semua alat di sekolah ini jika file hilang atau berubah domain.
               </div>
@@ -134,12 +144,15 @@
           <!-- Reset Borrowings Card -->
           <div style="border:1px solid rgba(220, 38, 38, 0.3);border-radius:8px;padding:1rem;background:rgba(220, 38, 38, 0.03);display:flex;flex-direction:column;justify-content:space-between;gap:1rem;">
             <div>
-              <div style="font-weight:700;font-size:0.875rem;color:#DC2626;margin-bottom:4px;">⚠️ Reset Riwayat Peminjaman</div>
+              <div style="font-weight:700;font-size:0.875rem;color:#DC2626;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Reset Riwayat Peminjaman
+              </div>
               <div style="font-size:0.75rem;color:var(--ink-2);line-height:1.4;">
                 Menghapus seluruh catatan peminjaman aktif & selesai untuk sekolah ini. Data alat & siswa tidak terhapus.
               </div>
             </div>
-            <a href="/admin/reset-borrowings" onclick="return confirm('⚠️ APAKAH ANDA YAKIN?\nSeluruh riwayat peminjaman di sekolah ini akan DIHAPUS permanen!');" class="btn btn-danger btn-sm" style="font-weight:700;justify-content:center;background:#DC2626;color:white;border:none;">
+            <a href="/admin/reset-borrowings" onclick="return confirm('APAKAH ANDA YAKIN?\nSeluruh riwayat peminjaman di sekolah ini akan DIHAPUS permanen!');" class="btn btn-danger btn-sm" style="font-weight:700;justify-content:center;background:#DC2626;color:white;border:none;">
               Reset Riwayat Peminjaman
             </a>
           </div>
@@ -162,7 +175,9 @@
   <div class="bezel-card reveal reveal-delay-2" style="margin-top:2rem;">
     <div class="bezel-card-inner" style="padding:1.5rem;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;border-bottom:1px solid var(--line);padding-bottom:0.75rem;">
-        <div style="width:32px;height:32px;border-radius:8px;background:rgba(59, 130, 246, 0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:1px solid rgba(59, 130, 246, 0.2);">🏫</div>
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;border:1px solid var(--line);color:var(--ink);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 7v14M21 7v14M6 21V11M18 21V11M12 21V7M12 3l9 4H3l9-4z"/></svg>
+        </div>
         <div>
           <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0;">Tambah Sekolah & Admin Baru</h3>
           <span style="font-size:0.75rem;color:var(--muted);">Daftarkan sekolah dan akun pengelola lab baru secara langsung dari browser</span>
@@ -201,7 +216,7 @@
         </div>
 
         <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;margin-top:0.5rem;">
-          <button type="submit" class="btn btn-primary" style="font-weight:700;padding:10px 24px;background:#2563EB;">
+          <button type="submit" class="btn btn-primary" style="font-weight:700;padding:10px 24px;">
             + Buat Sekolah & Admin Baru
           </button>
         </div>
@@ -212,8 +227,9 @@
         <label style="font-size:0.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Daftar Sekolah Terdaftar ({{ all_schools|length }}):</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           {% for sch in all_schools %}
-          <span class="badge" style="background:var(--bg);border:1px solid var(--line);color:var(--ink);font-weight:600;padding:4px 10px;font-size:0.75rem;">
-            🏫 {{ sch.name }} ({{ sch.code }})
+          <span class="badge" style="background:var(--bg);border:1px solid var(--line);color:var(--ink);font-weight:600;padding:4px 10px;font-size:0.75rem;display:inline-flex;align-items:center;gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 7v14M21 7v14M6 21V11M18 21V11M12 21V7M12 3l9 4H3l9-4z"/></svg>
+            {{ sch.name }} ({{ sch.code }})
           </span>
           {% endfor %}
         </div>
