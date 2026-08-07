@@ -1642,51 +1642,7 @@ def create_app() -> Flask:
             flash("Pengaturan berhasil disimpan.", "success")
             return redirect(url_for("admin_settings"))
 
-        all_schools = School.query.order_by(School.name).all()
-        return render_template("admin/settings.html", settings=cfg, admin=admin, school=school, all_schools=all_schools)
-
-    @app.route("/admin/add-school", methods=["POST"])
-    @admin_required
-    def admin_add_school():
-        name = request.form.get("name", "").strip()
-        code = request.form.get("code", "").strip().upper()
-        address = request.form.get("address", "").strip()
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-        full_name = request.form.get("full_name", "").strip() or f"Admin {name}"
-
-        if not name or not code or not username or not password:
-            flash("Nama sekolah, kode sekolah, username, dan password admin wajib diisi!", "error")
-            return redirect(url_for("admin_settings"))
-
-        # Check existing school code
-        existing_school = School.query.filter_by(code=code).first()
-        if existing_school:
-            flash(f"Kode sekolah '{code}' sudah terdaftar ({existing_school.name}). Gunakan kode lain.", "error")
-            return redirect(url_for("admin_settings"))
-
-        # Check existing admin username
-        existing_admin = Admin.query.filter_by(username=username).first()
-        if existing_admin:
-            flash(f"Username admin '{username}' sudah digunakan. Gunakan username lain.", "error")
-            return redirect(url_for("admin_settings"))
-
-        try:
-            new_school = School(code=code, name=name, address=address, loan_duration_hours=2, is_active=True)
-            db.session.add(new_school)
-            db.session.commit()
-
-            new_admin = Admin(school_id=new_school.id, username=username, full_name=full_name)
-            new_admin.set_password(password)
-            db.session.add(new_admin)
-            db.session.commit()
-
-            flash(f"Berhasil! Sekolah '{name}' ({code}) & Admin '{username}' telah dibuat.", "success")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Gagal menambahkan sekolah: {e}", "error")
-
-        return redirect(url_for("admin_settings"))
+        return render_template("admin/settings.html", settings=cfg, admin=admin, school=school)
 
     @app.route("/admin/reset-borrowings")
     @admin_required
