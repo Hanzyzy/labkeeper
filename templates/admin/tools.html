@@ -50,7 +50,7 @@
             <a href="/tool/{{ tool.code }}" class="btn-icon" title="Lihat Detail" aria-label="Lihat Detail">◎</a>
             <a href="/admin/tools?action=edit&code={{ tool.code }}" class="btn-icon" title="Edit" aria-label="Edit">✎</a>
             <button onclick="generateQR('{{ tool.code }}')" class="btn-icon" title="Generate QR" aria-label="Generate QR" {% if tool.qr_url %}disabled{% endif %}>⌗</button>
-            <form action="/admin/tools/action" method="POST" style="display:inline;" onsubmit="return confirm('Yakin hapus alat ini?')">
+            <form action="/admin/tools/action" method="POST" style="display:inline;" onsubmit="event.preventDefault(); const form = this; customConfirm('Yakin hapus alat ini?').then(ok => { if(ok) form.submit(); });">
               <input type="hidden" name="_action" value="delete">
               <input type="hidden" name="code" value="{{ tool.code }}">
               <button type="submit" class="btn-icon" title="Hapus" aria-label="Hapus">×</button>

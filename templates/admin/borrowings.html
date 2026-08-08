@@ -123,7 +123,7 @@
           <span>peminjaman dipilih</span>
         </div>
         <div class="bulk-bar-actions">
-          <button type="submit" name="_action" value="return" class="bulk-bar-btn" onclick="return confirm('Kembalikan semua peminjaman yang dipilih?')">Kembalikan Semua</button>
+          <button type="submit" name="_action" value="return" class="bulk-bar-btn" onclick="event.preventDefault(); const form = this.form; customConfirm('Kembalikan semua peminjaman yang dipilih?').then(ok => { if(ok) form.submit(); });">Kembalikan Semua</button>
           <button type="submit" name="_action" value="extend" class="bulk-bar-btn">Perpanjang Semua +2 Jam</button>
           <button type="button" class="bulk-bar-btn cancel" onclick="clearBulkSelection('bulkBorrowingsForm', 'bulkBorrowingsBar')">Batal</button>
         </div>

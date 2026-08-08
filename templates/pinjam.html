@@ -10,36 +10,55 @@
     <div class="bezel-card-inner">
       <span class="eyebrow-tag">Konfirmasi</span>
       <h1 class="page-title" style="font-size:clamp(24px,3.4vw,36px);margin:8px 0 6px;">Pinjam Alat</h1>
-      <p class="page-subtitle" style="margin:0 0 1.5rem;">Periksa detail sebelum meminjam</p>
+      <p class="page-subtitle" style="margin:0 0 1.5rem;">Periksa detail dan atur lokasi sebelum meminjam</p>
 
       <!-- Tool Info -->
-      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border:1px solid var(--line);background:var(--bg);margin-bottom:1.5rem;">
-        <div style="width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem;border:1px solid var(--line);background:var(--paper);">{{ tool.icon or '◇' }}</div>
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border:1px solid var(--line);background:var(--bg);margin-bottom:1.5rem;border-radius:12px;">
+        <div style="width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--paper);border-radius:10px;color:var(--ink);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        </div>
         <div>
-          <div style="font-family:var(--font-display);font-weight:700;font-size:1rem;">{{ tool.name }}</div>
-          <div style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);">{{ tool.code }} &middot; {{ tool.category }}</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:1rem;color:var(--ink);">{{ tool.name }}</div>
+          <div style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono);">Kode: {{ tool.code }} &middot; {{ tool.category }}</div>
         </div>
       </div>
 
-      <!-- Rules -->
-      <div class="info-box info-box-yellow" style="margin-bottom:1.5rem;">
-        <div class="info-box-title">⏰ Aturan Peminjaman</div>
-        <div class="info-box-text">
+      <!-- Rules Box -->
+      <div class="info-box info-box-yellow" style="margin-bottom:1.5rem;border-radius:12px;padding:1rem;">
+        <div class="info-box-title" style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:4px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Aturan Peminjaman
+        </div>
+        <div class="info-box-text" style="font-size:0.875rem;line-height:1.5;">
           Durasi peminjaman maksimal <strong>{{ duration_hours }} jam</strong>.
-          Alat harus dikembalikan tepat waktu di ruang lab.
-          Keterlambatan akan dicatat dan dapat mempengaruhi hak peminjaman selanjutnya.
+          Alat wajib dikembalikan tepat waktu di area laboratorium <strong>{{ school.name if school else 'Sekolah' }}</strong>.
         </div>
       </div>
 
-      <!-- Geofence Info Notice -->
+      <!-- Mandatory GPS Permission Section -->
       {% if school and school.require_geofence and school.latitude and school.longitude %}
-      <div class="info-box info-box-blue" style="margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:0.75rem;">
-        <div style="font-size:1.25rem;">📍</div>
-        <div>
-          <div class="info-box-title" style="margin-bottom:2px;">Verifikasi Lokasi Laboratorium</div>
-          <div class="info-box-text" style="font-size:0.8125rem;">
-            Sistem memerlukan izin akses lokasi GPS HP Anda untuk memverifikasi bahwa Anda berada di area laboratorium <strong>{{ school.name }}</strong> (Maksimal {{ school.max_geofence_radius_meters or 200 }}m).
+      <div class="gps-permission-card" style="border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:1.25rem;margin-bottom:1.5rem;box-shadow:0 4px 20px rgba(0,0,0,0.03);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           </div>
+          <div>
+            <div style="font-weight:700;font-size:0.9375rem;color:var(--ink);">Akses Lokasi GPS Presisi</div>
+            <div style="font-size:0.75rem;color:var(--muted);">Diperlukan untuk memvalidasi posisi di area lab</div>
+          </div>
+        </div>
+
+        <p style="font-size:0.8125rem;color:var(--ink-2);line-height:1.5;margin-bottom:1rem;">
+          Laboratorium {{ school.name }} mewajibkan verifikasi lokasi GPS sebelum alat dapat dipinjam (Maksimal {{ school.max_geofence_radius_meters or 200 }} meter).
+        </p>
+
+        <button type="button" id="btnGetGPS" class="btn btn-secondary w-full" style="justify-content:center;font-weight:700;padding:10px 16px;border-radius:10px;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+          <span>Izinkan & Verifikasi Lokasi GPS Saya</span>
+        </button>
+
+        <div id="gpsStatusBox" style="margin-top:10px;padding:10px 12px;border-radius:8px;font-size:0.8125rem;display:none;align-items:center;gap:8px;">
+          <span id="gpsStatusText"></span>
         </div>
       </div>
       {% endif %}
@@ -47,8 +66,8 @@
       <!-- Student Info -->
       <div style="padding-bottom:1.5rem;border-bottom:1px solid var(--line);margin-bottom:1.5rem;">
         <div class="form-label" style="margin-bottom:0.75rem;">Dipinjam Oleh</div>
-        <div style="font-family:var(--font-display);font-weight:700;font-size:1.125rem;">{{ current_student.name }}</div>
-        <div style="font-size:0.8125rem;color:var(--muted);">NIS: {{ current_student.nis }} &middot; Kelas: {{ current_student.class_name }}</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:1.125rem;color:var(--ink);">{{ current_student.name }}</div>
+        <div style="font-size:0.8125rem;color:var(--muted);font-family:var(--font-mono);">NIS: {{ current_student.nis }} &middot; Kelas: {{ current_student.class_name }}</div>
       </div>
 
       <!-- Actions -->
@@ -60,11 +79,11 @@
           <input type="hidden" name="accuracy" id="gps_accuracy">
           <input type="hidden" name="device_info" id="device_info">
           
-          <button type="submit" id="btnSubmitBorrow" class="btn btn-primary w-full" style="height:3rem;font-size:1rem;gap:0.5rem;">
-            <span>Ya, Pinjam Sekarang</span>
+          <button type="submit" id="btnSubmitBorrow" class="btn btn-primary w-full" style="height:3rem;font-size:1rem;gap:0.5rem;border-radius:12px;background:#000000;color:#ffffff;" {% if school and school.require_geofence and school.latitude and school.longitude %}disabled{% endif %}>
+            <span>Konfirmasi & Pinjam Sekarang &nbsp;→</span>
           </button>
         </form>
-        <a href="/tool/{{ tool.code }}" class="btn btn-secondary w-full">Batal</a>
+        <a href="/tool/{{ tool.code }}" class="btn btn-secondary w-full" style="border-radius:12px;">Batal</a>
       </div>
 
     </div>
@@ -74,13 +93,17 @@
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const form = document.getElementById("borrowForm");
-  const btn = document.getElementById("btnSubmitBorrow");
+  const btnSubmit = document.getElementById("btnSubmitBorrow");
+  const btnGetGPS = document.getElementById("btnGetGPS");
+  const statusBox = document.getElementById("gpsStatusBox");
+  const statusText = document.getElementById("gpsStatusText");
+
   const latInput = document.getElementById("gps_lat");
   const lngInput = document.getElementById("gps_lng");
   const accInput = document.getElementById("gps_accuracy");
   const devInput = document.getElementById("device_info");
 
-  // Auto-detect device fingerprint info
+  // Device Fingerprint Metadata
   const ua = navigator.userAgent;
   let devName = "Mobile/Desktop Browser";
   if (ua.includes("Android")) devName = "Android Device";
@@ -90,77 +113,84 @@ document.addEventListener("DOMContentLoaded", function() {
   else if (ua.includes("Macintosh")) devName = "Mac Device";
   devInput.value = `${devName} | ${navigator.platform || ''}`;
 
-  let isSubmitting = false;
+  const isGeofenceRequired = {% if school and school.require_geofence and school.latitude and school.longitude %}true{% else %}false{% endif %};
+
+  function updateStatus(type, msg) {
+    if (!statusBox) return;
+    statusBox.style.display = "flex";
+    if (type === 'loading') {
+      statusBox.style.background = "var(--bg)";
+      statusBox.style.color = "var(--ink)";
+      statusBox.style.border = "1px solid var(--line)";
+      statusText.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;">🔄</span> <span>${msg}</span>`;
+    } else if (type === 'success') {
+      statusBox.style.background = "#DCFCE7";
+      statusBox.style.color = "#15803D";
+      statusBox.style.border = "1px solid #86EFAC";
+      statusText.innerHTML = `<span>✔ ${msg}</span>`;
+    } else if (type === 'error') {
+      statusBox.style.background = "#FEE2E2";
+      statusBox.style.color = "#B91C1C";
+      statusBox.style.border = "1px solid #FCA5A5";
+      statusText.innerHTML = `<span>✖ ${msg}</span>`;
+    }
+  }
+
+  function requestGPS() {
+    if (!navigator.geolocation) {
+      customAlert("Browser Anda tidak mendukung layanan lokasi GPS. Gunakan browser modern seperti Google Chrome atau Safari.", "Layanan GPS Tidak Tersedia");
+      return;
+    }
+
+    if (btnGetGPS) {
+      btnGetGPS.disabled = true;
+      btnGetGPS.innerHTML = `<span>Meminta Akses Lokasi GPS...</span>`;
+    }
+    updateStatus('loading', 'Mengambil posisi GPS presisi dari perangkat HP Anda...');
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        latInput.value = pos.coords.latitude;
+        lngInput.value = pos.coords.longitude;
+        accInput.value = pos.coords.accuracy;
+
+        if (btnGetGPS) {
+          btnGetGPS.disabled = false;
+          btnGetGPS.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> <span>Verifikasi ulang GPS</span>`;
+        }
+
+        updateStatus('success', `Lokasi GPS Terverifikasi! (Lat: ${pos.coords.latitude.toFixed(5)}, Lng: ${pos.coords.longitude.toFixed(5)})`);
+        btnSubmit.disabled = false;
+      },
+      function(err) {
+        if (btnGetGPS) {
+          btnGetGPS.disabled = false;
+          btnGetGPS.innerHTML = `<span>Coba Dapatkan Lokasi Lagi</span>`;
+        }
+        let errMsg = "Izin lokasi GPS diperlukan untuk memvalidasi posisi peminjaman di laboratorium.";
+        if (err.code === 1) {
+          errMsg = "Akses lokasi GPS ditolak oleh pengguna. Harap izinkan akses lokasi di pengaturan browser HP Anda.";
+        } else if (err.code === 2) {
+          errMsg = "Sinyal lokasi GPS tidak dapat ditemukan. Pastikan lokasi HP Anda telah diaktifkan.";
+        } else if (err.code === 3) {
+          errMsg = "Waktu verifikasi lokasi GPS habis. Silakan coba lagi.";
+        }
+        updateStatus('error', errMsg);
+        customAlert(errMsg, "Akses Lokasi GPS Ditolak");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  if (btnGetGPS) {
+    btnGetGPS.addEventListener("click", requestGPS);
+  }
 
   form.addEventListener("submit", function(e) {
-    if (isSubmitting) return;
-
-    {% if school and school.require_geofence and school.latitude and school.longitude %}
-    // If geofence is required, acquire GPS coordinates before submit
-    if (!latInput.value || !lngInput.value) {
+    if (isGeofenceRequired && (!latInput.value || !lngInput.value)) {
       e.preventDefault();
-      
-      if (!navigator.geolocation) {
-        alert("Browser Anda tidak mendukung layanan lokasi GPS. Gunakan browser modern seperti Chrome atau Safari.");
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> <span>Memverifikasi Lokasi GPS Lab...</span>`;
-
-      navigator.geolocation.getCurrentPosition(
-        function(pos) {
-          latInput.value = pos.coords.latitude;
-          lngInput.value = pos.coords.longitude;
-          accInput.value = pos.coords.accuracy;
-          
-          btn.innerHTML = `<span>✓ Lokasi Terverifikasi! Memproses...</span>`;
-          isSubmitting = true;
-          form.submit();
-        },
-        function(err) {
-          btn.disabled = false;
-          btn.innerHTML = `<span>Ya, Pinjam Sekarang</span>`;
-          
-          let errMsg = "Izin lokasi GPS diperlukan untuk memvalidasi posisi peminjaman di laboratorium.";
-          if (err.code === 1) {
-            errMsg = "Izin akses lokasi GPS ditolak oleh pengguna. Harap aktifkan izin lokasi di browser HP Anda.";
-          } else if (err.code === 2) {
-            errMsg = "Lokasi GPS tidak dapat ditemukan. Pastikan GPS HP Anda aktif.";
-          } else if (err.code === 3) {
-            errMsg = "Waktu verifikasi lokasi GPS habis. Coba lagi.";
-          }
-          alert("⚠️ " + errMsg);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
+      requestGPS();
     }
-    {% else %}
-    // If geofence is optional, silently capture location if available
-    if (navigator.geolocation && (!latInput.value || !lngInput.value)) {
-      e.preventDefault();
-      btn.disabled = true;
-      btn.innerHTML = `<span>Memproses...</span>`;
-      navigator.geolocation.getCurrentPosition(
-        function(pos) {
-          latInput.value = pos.coords.latitude;
-          lngInput.value = pos.coords.longitude;
-          accInput.value = pos.coords.accuracy;
-          isSubmitting = true;
-          form.submit();
-        },
-        function() {
-          isSubmitting = true;
-          form.submit();
-        },
-        { timeout: 3000 }
-      );
-    }
-    {% endif %}
   });
 });
 </script>

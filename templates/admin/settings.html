@@ -187,7 +187,7 @@
                 Buat ulang seluruh file PNG QR Code untuk semua alat di sekolah ini jika file hilang atau berubah domain.
               </div>
             </div>
-            <a href="/admin/generate-all-qr" onclick="return confirm('Generate ulang seluruh QR Code alat lab?');" class="btn btn-secondary btn-sm" style="font-weight:700;justify-content:center;">
+            <a href="/admin/generate-all-qr" onclick="event.preventDefault(); const target = this.href; customConfirm('Generate ulang seluruh QR Code alat lab?').then(ok => { if(ok) window.location.href = target; });" class="btn btn-secondary btn-sm" style="font-weight:700;justify-content:center;">
               Generate Semua QR Code
             </a>
           </div>
@@ -203,7 +203,7 @@
                 Menghapus seluruh catatan peminjaman aktif & selesai untuk sekolah ini. Data alat & siswa tidak terhapus.
               </div>
             </div>
-            <a href="/admin/reset-borrowings" onclick="return confirm('APAKAH ANDA YAKIN?\nSeluruh riwayat peminjaman di sekolah ini akan DIHAPUS permanen!');" class="btn btn-danger btn-sm" style="font-weight:700;justify-content:center;background:#DC2626;color:white;border:none;">
+            <a href="/admin/reset-borrowings" onclick="event.preventDefault(); const target = this.href; customConfirm('APAKAH ANDA YAKIN?<br/>Seluruh riwayat peminjaman di sekolah ini akan DIHAPUS permanen!').then(ok => { if(ok) window.location.href = target; });" class="btn btn-danger btn-sm" style="font-weight:700;justify-content:center;background:#DC2626;color:white;border:none;">
               Reset Riwayat Peminjaman
             </a>
           </div>
@@ -237,18 +237,17 @@ function setDuration(hours) {
 
 function detectAdminGPS() {
   if (!navigator.geolocation) {
-    alert("Browser Anda tidak mendukung Geolocation GPS.");
+    customAlert("Browser Anda tidak mendukung layanan lokasi GPS.", "GPS Tidak Tersedia");
     return;
   }
-  alert("Sedang mengambil posisi GPS presisi Anda...");
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       document.getElementById("schoolLat").value = pos.coords.latitude.toFixed(6);
       document.getElementById("schoolLng").value = pos.coords.longitude.toFixed(6);
-      alert(`✓ Koordinat GPS berhasil dimasukkan!\nLatitude: ${pos.coords.latitude.toFixed(6)}\nLongitude: ${pos.coords.longitude.toFixed(6)}\n\nJangan lupa klik 'Simpan Pengaturan' di bawah.`);
+      customAlert(`Koordinat GPS berhasil dimasukkan!<br/>Latitude: ${pos.coords.latitude.toFixed(6)}<br/>Longitude: ${pos.coords.longitude.toFixed(6)}<br/><br/>Jangan lupa klik 'Simpan Pengaturan' di bawah.`, "Lokasi Terdeteksi");
     },
     function(err) {
-      alert("⚠️ Gagal mengambil posisi GPS. Pastikan izin lokasi diaktifkan di browser Anda.");
+      customAlert("Gagal mengambil posisi GPS. Pastikan izin lokasi diaktifkan di pengaturan browser Anda.", "Deteksi GPS Gagal");
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );

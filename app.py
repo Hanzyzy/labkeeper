@@ -309,7 +309,7 @@ def create_app() -> Flask:
         # 1. Enforce student ban check
         if student.is_banned:
             remaining = student.banned_remaining_str or "beberapa waktu"
-            flash(f"⛔ Akun Anda sedang dibekukan ({remaining}) karena terdeteksi {student.spam_count}x percobaan peminjaman palsu/di luar area lab. Hubungi Admin Laboran untuk membuka blokir.", "error")
+            flash(f"Akun Anda sedang dibekukan ({remaining}) karena terdeteksi {student.spam_count}x percobaan peminjaman palsu/di luar area lab. Hubungi Admin Laboran untuk membuka blokir.", "error")
             return redirect(url_for("tool_detail", code=code))
 
         # 2. Enforce same school check
@@ -357,9 +357,9 @@ def create_app() -> Flask:
                         db.session.commit()
 
                         if student.spam_count >= 3:
-                            flash(f"🔴 Peminjaman Ditolak! Posisi Anda terdeteksi {distance_m:.0f}m di luar area laboratorium (maksimal {max_radius}m). Akun Anda kini dibekukan 7 hari (3x percobaan palsu).", "error")
+                            flash(f"Peminjaman Ditolak! Posisi Anda terdeteksi {distance_m:.0f}m di luar area laboratorium (maksimal {max_radius}m). Akun Anda kini dibekukan 7 hari (3x percobaan palsu).", "error")
                         else:
-                            flash(f"⚠️ Peminjaman Ditolak! Posisi Anda terdeteksi {distance_m:.0f}m di luar area laboratorium (maksimal {max_radius}m). Teguran ke-{student.spam_count}/3.", "warning")
+                            flash(f"Peminjaman Ditolak! Posisi Anda terdeteksi {distance_m:.0f}m di luar area laboratorium (maksimal {max_radius}m). Teguran ke-{student.spam_count}/3.", "warning")
 
                         return redirect(url_for("tool_detail", code=code))
                 else:
