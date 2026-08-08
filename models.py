@@ -110,6 +110,10 @@ class School(db.Model):
     name = db.Column(db.String(150), nullable=False)
     address = db.Column(db.String(255))
     loan_duration_hours = db.Column(db.Integer, default=2, nullable=False)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    max_geofence_radius_meters = db.Column(db.Integer, default=200, nullable=False)
+    require_geofence = db.Column(db.Boolean, default=True, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(SafeDateTime, default=wib_now)
 
@@ -162,6 +166,8 @@ class Student(db.Model):
     password_version = db.Column(db.Integer, default=1, nullable=False)
     phone = db.Column(db.String(20))
     avatar_path = db.Column(db.String(255))
+    spam_count = db.Column(db.Integer, default=0, nullable=False)
+    banned_until = db.Column(SafeDateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(SafeDateTime, default=wib_now)
 
@@ -184,6 +190,29 @@ class Student(db.Model):
             return check_password_hash(self.password_hash, raw)
         except Exception:
             return False
+
+    @property
+    def is_banned(self) -> bool:
+        if not self.is_active:
+            return True
+        if self.banned_until and self.banned_until > wib_now():
+            return True
+        return False
+
+    @property
+    def banned_remaining_str(self) -> str:
+        if self.banned_until and self.banned_until > wib_now():
+            diff = self.banned_until - wib_now()
+            hours = int(diff.total_seconds() // 3600)
+            mins = int((diff.total_seconds() % 3600) // 60)
+            if hours > 24:
+                days = hours // 24
+                return f"{days} hari {hours % 24} jam"
+            elif hours > 0:
+                return f"{hours} jam {mins} menit"
+            else:
+                return f"{mins} menit"
+        return ""
 
     @property
     def school_name(self):
@@ -264,11 +293,16 @@ class Borrowing(db.Model):
     borrow_date = db.Column(SafeDateTime, default=wib_now)
     deadline = db.Column(SafeDateTime, nullable=False)
     return_date = db.Column(SafeDateTime)
-    status = db.Column(db.String(20), default="active")   # active / returned / overdue
+    status = db.Column(db.String(25), default="active")   # active / returned / overdue / rejected_geofence
     condition_after = db.Column(db.String(20))
     notes = db.Column(db.Text)
     force_returned = db.Column(db.Boolean, default=False)
     extend_count = db.Column(db.Integer, default=0)
+    borrow_lat = db.Column(db.Float, nullable=True)
+    borrow_lng = db.Column(db.Float, nullable=True)
+    borrow_distance_meters = db.Column(db.Float, nullable=True)
+    device_info = db.Column(db.String(255), nullable=True)
+    ip_address = db.Column(db.String(50), nullable=True)
 
     @property
     def student_name(self):
@@ -281,6 +315,7 @@ class Borrowing(db.Model):
     @property
     def student_avatar_url(self):
         return self.student.avatar_url if self.student else None
+
 
     @property
     def student_initial(self):

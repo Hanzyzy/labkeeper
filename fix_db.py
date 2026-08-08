@@ -1,4 +1,8 @@
 import sqlite3
+import sys
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 def fix_db():
     conn = sqlite3.connect("instance/labkeeper.db")
@@ -10,12 +14,18 @@ def fix_db():
         ("schools", "loan_duration_hours", "INTEGER DEFAULT 2"),
         ("schools", "is_active", "INTEGER DEFAULT 1"),
         ("schools", "address", "TEXT"),
+        ("schools", "latitude", "REAL"),
+        ("schools", "longitude", "REAL"),
+        ("schools", "max_geofence_radius_meters", "INTEGER DEFAULT 200"),
+        ("schools", "require_geofence", "INTEGER DEFAULT 1"),
         ("admins", "full_name", "TEXT"),
         ("admins", "school_id", "INTEGER"),
         ("students", "password_version", "INTEGER DEFAULT 1"),
         ("students", "avatar_path", "TEXT"),
         ("students", "phone", "TEXT"),
         ("students", "school_id", "INTEGER"),
+        ("students", "spam_count", "INTEGER DEFAULT 0"),
+        ("students", "banned_until", "TEXT"),
         ("tools", "school_id", "INTEGER"),
         ("tools", "icon", "TEXT DEFAULT '📦'"),
         ("tools", "photo_emoji", "TEXT DEFAULT '🔧'"),
@@ -24,6 +34,11 @@ def fix_db():
         ("borrowings", "force_returned", "INTEGER DEFAULT 0"),
         ("borrowings", "archived_student_name", "TEXT"),
         ("borrowings", "archived_student_nis", "TEXT"),
+        ("borrowings", "borrow_lat", "REAL"),
+        ("borrowings", "borrow_lng", "REAL"),
+        ("borrowings", "borrow_distance_meters", "REAL"),
+        ("borrowings", "device_info", "TEXT"),
+        ("borrowings", "ip_address", "TEXT"),
     ]
 
     for tbl, col, col_def in migrations:

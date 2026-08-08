@@ -54,7 +54,7 @@
               <p class="card-nis">{{ b.student_nis }} &middot; {{ b.tool_name }} ({{ b.tool_code }})</p>
             </div>
           </div>
-          {% if b.return_time %}
+          {% if b.return_date %}
             <span class="activity-status returned">Kembali</span>
           {% elif b.is_overdue() %}
             <span class="activity-status overdue">Telat</span>
@@ -66,28 +66,50 @@
         <div class="card-meta">
           <div class="meta-item">
             <span class="meta-label">Pinjam</span>
-            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.start_time.strftime('%d/%m/%Y %H:%M') }}</span>
+            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.borrow_date.strftime('%d/%m/%Y %H:%M') if b.borrow_date else '—' }}</span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Batas Kembali</span>
-            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.due_time.strftime('%d/%m/%Y %H:%M') if b.due_time else '—' }}</span>
+            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.deadline.strftime('%d/%m/%Y %H:%M') if b.deadline else '—' }}</span>
           </div>
-          {% if b.return_time %}
+          {% if b.return_date %}
           <div class="meta-item">
             <span class="meta-label">Dikembalikan</span>
-            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.return_time.strftime('%d/%m/%Y %H:%M') }}</span>
+            <span style="font-family:var(--font-mono);font-size:13px;">{{ b.return_date.strftime('%d/%m/%Y %H:%M') }}</span>
           </div>
           {% endif %}
         </div>
 
+        <!-- Digital Evidence Badge (GPS Location, Distance, Device, IP) -->
+        {% if b.borrow_distance_meters is not none or b.device_info or b.ip_address %}
+        <div style="margin-top:0.75rem;padding:0.5rem 0.75rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;color:var(--ink-2);">
+            <span style="font-weight:700;color:var(--ink);">📍 Posisi:</span>
+            {% if b.borrow_distance_meters is not none %}
+              <span class="badge" style="background:{% if b.borrow_distance_meters <= ((b.school.max_geofence_radius_meters if b.school else 200) or 200) %}#DCFCE7;color:#15803D{% else %}#FEE2E2;color:#B91C1C{% endif %};font-weight:700;padding:2px 8px;border-radius:12px;font-size:0.6875rem;">
+                {{ b.borrow_distance_meters|int }}m dari Lab
+              </span>
+            {% else %}
+              <span style="color:var(--muted);">GPS Tanpa Filter</span>
+            {% endif %}
+            {% if b.borrow_lat and b.borrow_lng %}
+              <a href="https://maps.google.com/?q={{ b.borrow_lat }},{{ b.borrow_lng }}" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:underline;font-weight:600;">(Lihat Peta ↗)</a>
+            {% endif %}
+          </div>
+          <div style="color:var(--muted);font-family:var(--font-mono);font-size:0.6875rem;">
+            {{ b.device_info.split('|')[0] if b.device_info else 'Device' }} &middot; IP: {{ b.ip_address or 'Unknown' }}
+          </div>
+        </div>
+        {% endif %}
+
         <div class="card-footer">
-          {% if not b.return_time %}
+          {% if not b.return_date %}
             {% if b.is_overdue() %}
             <button type="button" class="btn btn-secondary btn-sm" onclick="showExtendModal('{{ b.id }}', '{{ b.tool_name|replace("'", "\\'") }}')">+ Perpanjang 2 Jam</button>
             {% endif %}
             <button type="button" class="btn btn-primary btn-sm" onclick="showReturnModal('{{ b.id }}', '{{ b.tool_name|replace("'", "\\'") }}')">Kembalikan</button>
           {% else %}
-            <span style="font-size:12px;color:var(--muted);">Selesai pada {{ b.return_time.strftime('%d/%m/%Y %H:%M') }}</span>
+            <span style="font-size:12px;color:var(--muted);">Selesai pada {{ b.return_date.strftime('%d/%m/%Y %H:%M') }}</span>
           {% endif %}
         </div>
       </div>

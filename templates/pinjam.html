@@ -31,6 +31,19 @@
         </div>
       </div>
 
+      <!-- Geofence Info Notice -->
+      {% if school and school.require_geofence and school.latitude and school.longitude %}
+      <div class="info-box info-box-blue" style="margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:0.75rem;">
+        <div style="font-size:1.25rem;">📍</div>
+        <div>
+          <div class="info-box-title" style="margin-bottom:2px;">Verifikasi Lokasi Laboratorium</div>
+          <div class="info-box-text" style="font-size:0.8125rem;">
+            Sistem memerlukan izin akses lokasi GPS HP Anda untuk memverifikasi bahwa Anda berada di area laboratorium <strong>{{ school.name }}</strong> (Maksimal {{ school.max_geofence_radius_meters or 200 }}m).
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Student Info -->
       <div style="padding-bottom:1.5rem;border-bottom:1px solid var(--line);margin-bottom:1.5rem;">
         <div class="form-label" style="margin-bottom:0.75rem;">Dipinjam Oleh</div>
@@ -40,14 +53,116 @@
 
       <!-- Actions -->
       <div style="display:flex;flex-direction:column;gap:0.75rem;">
-        <form method="POST" action="/pinjam/{{ tool.code }}" style="display:flex;gap:0.75rem;">
+        <form id="borrowForm" method="POST" action="/pinjam/{{ tool.code }}" style="display:flex;flex-direction:column;gap:0.75rem;">
           <input type="hidden" name="reason" value="{{ request.args.get('reason', '') }}">
-          <button type="submit" class="btn btn-primary w-full">Ya, Pinjam Sekarang</button>
+          <input type="hidden" name="lat" id="gps_lat">
+          <input type="hidden" name="lng" id="gps_lng">
+          <input type="hidden" name="accuracy" id="gps_accuracy">
+          <input type="hidden" name="device_info" id="device_info">
+          
+          <button type="submit" id="btnSubmitBorrow" class="btn btn-primary w-full" style="height:3rem;font-size:1rem;gap:0.5rem;">
+            <span>Ya, Pinjam Sekarang</span>
+          </button>
         </form>
         <a href="/tool/{{ tool.code }}" class="btn btn-secondary w-full">Batal</a>
       </div>
+
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const form = document.getElementById("borrowForm");
+  const btn = document.getElementById("btnSubmitBorrow");
+  const latInput = document.getElementById("gps_lat");
+  const lngInput = document.getElementById("gps_lng");
+  const accInput = document.getElementById("gps_accuracy");
+  const devInput = document.getElementById("device_info");
+
+  // Auto-detect device fingerprint info
+  const ua = navigator.userAgent;
+  let devName = "Mobile/Desktop Browser";
+  if (ua.includes("Android")) devName = "Android Device";
+  else if (ua.includes("iPhone")) devName = "iPhone (iOS)";
+  else if (ua.includes("iPad")) devName = "iPad (iOS)";
+  else if (ua.includes("Windows")) devName = "Windows PC";
+  else if (ua.includes("Macintosh")) devName = "Mac Device";
+  devInput.value = `${devName} | ${navigator.platform || ''}`;
+
+  let isSubmitting = false;
+
+  form.addEventListener("submit", function(e) {
+    if (isSubmitting) return;
+
+    {% if school and school.require_geofence and school.latitude and school.longitude %}
+    // If geofence is required, acquire GPS coordinates before submit
+    if (!latInput.value || !lngInput.value) {
+      e.preventDefault();
+      
+      if (!navigator.geolocation) {
+        alert("Browser Anda tidak mendukung layanan lokasi GPS. Gunakan browser modern seperti Chrome atau Safari.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> <span>Memverifikasi Lokasi GPS Lab...</span>`;
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          latInput.value = pos.coords.latitude;
+          lngInput.value = pos.coords.longitude;
+          accInput.value = pos.coords.accuracy;
+          
+          btn.innerHTML = `<span>✓ Lokasi Terverifikasi! Memproses...</span>`;
+          isSubmitting = true;
+          form.submit();
+        },
+        function(err) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>Ya, Pinjam Sekarang</span>`;
+          
+          let errMsg = "Izin lokasi GPS diperlukan untuk memvalidasi posisi peminjaman di laboratorium.";
+          if (err.code === 1) {
+            errMsg = "Izin akses lokasi GPS ditolak oleh pengguna. Harap aktifkan izin lokasi di browser HP Anda.";
+          } else if (err.code === 2) {
+            errMsg = "Lokasi GPS tidak dapat ditemukan. Pastikan GPS HP Anda aktif.";
+          } else if (err.code === 3) {
+            errMsg = "Waktu verifikasi lokasi GPS habis. Coba lagi.";
+          }
+          alert("⚠️ " + errMsg);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+    {% else %}
+    // If geofence is optional, silently capture location if available
+    if (navigator.geolocation && (!latInput.value || !lngInput.value)) {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.innerHTML = `<span>Memproses...</span>`;
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          latInput.value = pos.coords.latitude;
+          lngInput.value = pos.coords.longitude;
+          accInput.value = pos.coords.accuracy;
+          isSubmitting = true;
+          form.submit();
+        },
+        function() {
+          isSubmitting = true;
+          form.submit();
+        },
+        { timeout: 3000 }
+      );
+    }
+    {% endif %}
+  });
+});
+</script>
 
 {% endblock %}

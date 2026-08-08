@@ -306,7 +306,13 @@ def create_app() -> Flask:
         tool = Tool.query.filter_by(code=code, is_active=True).first_or_404()
         student = current_student()
         
-        # Enforce same school check
+        # 1. Enforce student ban check
+        if student.is_banned:
+            remaining = student.banned_remaining_str or "beberapa waktu"
+            flash(f"⛔ Akun Anda sedang dibekukan ({remaining}) karena terdeteksi {student.spam_count}x percobaan peminjaman palsu/di luar area lab. Hubungi Admin Laboran untuk membuka blokir.", "error")
+            return redirect(url_for("tool_detail", code=code))
+
+        # 2. Enforce same school check
         if tool.school_id and student.school_id and tool.school_id != student.school_id:
             flash(f"Alat ini milik laboratorium {tool.school_name}. Anda terdaftar di {student.school_name}.", "error")
             return redirect(url_for("tool_detail", code=code))
@@ -317,6 +323,49 @@ def create_app() -> Flask:
 
         if request.method == "POST":
             notes = request.form.get("notes", "").strip()
+            
+            # Extract Location & Metadata from POST
+            lat_str = request.form.get("lat")
+            lng_str = request.form.get("lng")
+            device_info = request.form.get("device_info", "").strip() or request.user_agent.string
+            
+            # Real Client IP extraction (handling Nginx X-Forwarded-For)
+            ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+            if ip_address and "," in ip_address:
+                ip_address = ip_address.split(",")[0].strip()
+
+            borrow_lat = float(lat_str) if lat_str else None
+            borrow_lng = float(lng_str) if lng_str else None
+
+            # 3. Geofencing GPS Verification against School Location
+            school = student.school or tool.school
+            distance_m = None
+
+            if school and school.require_geofence and school.latitude is not None and school.longitude is not None:
+                if borrow_lat is not None and borrow_lng is not None:
+                    from geofence import haversine_distance
+                    distance_m = haversine_distance(borrow_lat, borrow_lng, school.latitude, school.longitude)
+                    max_radius = school.max_geofence_radius_meters or 200
+
+                    if distance_m > max_radius:
+                        # Increment spam count for fake/out-of-range attempt
+                        student.spam_count = (student.spam_count or 0) + 1
+                        if student.spam_count >= 3:
+                            student.banned_until = utcnow() + timedelta(days=7)
+                            student.is_active = False
+
+                        db.session.commit()
+
+                        if student.spam_count >= 3:
+                            flash(f"🔴 Peminjaman Ditolak! Posisi Anda terdeteksi {distance_m:.0f}m di luar area laboratorium (maksimal {max_radius}m). Akun Anda kini dibekukan 7 hari (3x percobaan palsu).", "error")
+                        else:
+                            flash(f"⚠️ Peminjaman Ditolak! Posisi Anda terdeteksi {distance_m:.0f}m di luar area laboratorium (maksimal {max_radius}m). Teguran ke-{student.spam_count}/3.", "warning")
+
+                        return redirect(url_for("tool_detail", code=code))
+                else:
+                    flash("Lokasi GPS (akses lokasi HP) wajib diizinkan untuk memvalidasi peminjaman di laboratorium sekolah.", "error")
+                    return redirect(url_for("tool_detail", code=code))
+
             hours = Borrowing.default_deadline_hours(student.school_id if student else tool.school_id)
             new = Borrowing(
                 school_id=student.school_id or tool.school_id,
@@ -325,6 +374,11 @@ def create_app() -> Flask:
                 borrow_date=utcnow(),
                 deadline=utcnow() + timedelta(hours=hours),
                 notes=notes,
+                borrow_lat=borrow_lat,
+                borrow_lng=borrow_lng,
+                borrow_distance_meters=distance_m,
+                device_info=device_info[:255] if device_info else None,
+                ip_address=ip_address[:50] if ip_address else None,
             )
             db.session.add(new)
             db.session.commit()
@@ -332,7 +386,8 @@ def create_app() -> Flask:
             return redirect(url_for("tool_detail", code=code))
 
         hours = Borrowing.default_deadline_hours(student.school_id if student else tool.school_id)
-        return render_template("pinjam.html", tool=tool, duration_hours=hours)
+        school = student.school or tool.school
+        return render_template("pinjam.html", tool=tool, duration_hours=hours, school=school)
 
     @app.route("/kembalikan/<code>", methods=["POST"])
     @student_required
@@ -974,6 +1029,16 @@ def create_app() -> Flask:
             db.session.commit()
             flash(f"Siswa {s.name} dihapus permanen. Histori peminjaman tetap tersimpan.", "info")
             return redirect(url_for("admin_students"))
+
+        elif action == "unblock":
+            nis = request.form.get("nis", "").strip()
+            s = Student.query.filter_by(school_id=school_id, nis=nis).first_or_404()
+            s.is_active = True
+            s.banned_until = None
+            s.spam_count = 0
+            db.session.commit()
+            flash(f"🟢 Akun siswa {s.name} (NIS: {s.nis}) telah dibuka blokirnya dan jumlah teguran telah di-reset ke 0.", "success")
+            return redirect(url_for("admin_students"))
         
         return redirect(url_for("admin_students"))
 
@@ -1613,7 +1678,29 @@ def create_app() -> Flask:
                 except ValueError:
                     pass
 
-            # 2. Update Password Admin (jika diisi)
+            # 2. Update Pengaturan GPS Geofencing Sekolah
+            lat_val = request.form.get("latitude", "").strip()
+            lng_val = request.form.get("longitude", "").strip()
+            radius_val = request.form.get("max_geofence_radius_meters", "").strip()
+            require_geofence = request.form.get("require_geofence") == "1"
+
+            if school:
+                try:
+                    school.latitude = float(lat_val) if lat_val else None
+                except ValueError:
+                    pass
+                try:
+                    school.longitude = float(lng_val) if lng_val else None
+                except ValueError:
+                    pass
+                try:
+                    if radius_val:
+                        school.max_geofence_radius_meters = max(10, int(radius_val))
+                except ValueError:
+                    pass
+                school.require_geofence = require_geofence
+
+            # 3. Update Password Admin (jika diisi)
             current_pw = request.form.get("current_password", "").strip()
             new_pw = request.form.get("new_password", "").strip()
             confirm_pw = request.form.get("confirm_password", "").strip()

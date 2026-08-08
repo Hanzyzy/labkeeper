@@ -86,20 +86,34 @@
             </div>
           </div>
 
-          <div class="card-footer" style="display:flex;align-items:center;justify-content:space-between;">
-            <!-- Status Active / Inactive Badge -->
-            {% if s.is_active %}
+          <div class="card-footer" style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+            <!-- Status Active / Banned Badge -->
+            {% if s.is_banned %}
+              <span class="status-badge borrowed" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;font-weight:700;">
+                🔴 Banned ({{ s.banned_remaining_str or 'Nonaktif' }})
+              </span>
+            {% elif not s.is_active %}
+              <span class="status-badge borrowed" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#F1F5F9;color:#64748B;font-weight:700;">
+                ✕ Nonaktif
+              </span>
+            {% elif s.spam_count > 0 %}
+              <span class="status-badge" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#FEF3C7;color:#D97706;font-weight:700;">
+                ⚠️ Teguran: {{ s.spam_count }}/3
+              </span>
+            {% else %}
               <span class="status-badge available" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;font-weight:700;">
                 ✓ Akun Aktif
               </span>
-            {% else %}
-              <span class="status-badge borrowed" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;font-weight:700;">
-                ✕ Nonaktif
-              </span>
             {% endif %}
 
-            {% if s.active_borrowings_count > 0 %}
-              <span style="font-size:0.6875rem;color:#1D4ED8;font-weight:600;">Meminjam Alat</span>
+            {% if s.is_banned or s.spam_count > 0 %}
+              <form method="POST" action="/admin/students/action" style="display:inline;margin:0;">
+                <input type="hidden" name="_action" value="unblock">
+                <input type="hidden" name="nis" value="{{ s.nis }}">
+                <button type="submit" class="btn btn-secondary btn-sm" style="font-size:0.6875rem;padding:3px 10px;font-weight:700;color:#15803D;border-color:rgba(21,128,61,0.3);background:rgba(220,252,231,0.5);">
+                  🟢 Unblock / Reset
+                </button>
+              </form>
             {% endif %}
           </div>
 
