@@ -26,13 +26,13 @@ def clean_all_dates():
                         dd = p[0].zfill(2)
                         n_val = f"{yyyy}-{mm}-{dd} {t_part}"
                         cursor.execute(f"UPDATE [{t}] SET [{col}] = ? WHERE rowid = ?", (n_val, r_id))
-                        print(f"✅ Fixed [{t}].[{col}] (rowid {r_id}): {val} -> {n_val}")
+                        print(f"[SUCCESS] Fixed [{t}].[{col}] (rowid {r_id}): {val} -> {n_val}")
                         total += 1
 
     conn.commit()
     conn.close()
     print("==========================================")
-    print(f"🎉 SUKSES: Total {total} tanggal bermasalah berhasil diperbaiki!")
+    print(f"[DONE] SUKSES: Total {total} tanggal bermasalah berhasil diperbaiki!")
     print("==========================================")
 
 if __name__ == '__main__':

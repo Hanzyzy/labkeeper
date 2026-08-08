@@ -37,7 +37,7 @@ def reset_and_seed():
             
         db.session.commit()
         print("==========================================")
-        print("✅ DATABASE BERHASIL DI-RESET & DI-SEED!")
+        print("[SUCCESS] DATABASE BERHASIL DI-RESET & DI-SEED!")
         print("Admin: admin / admin123 (SMK Telkom Bandung)")
         print("Siswa: 1001-1005 / siswa123 (SMK Telkom Bandung)")
         print("==========================================")

@@ -48,7 +48,7 @@
           </div>
           <div class="card-actions">
             <a href="/tool/{{ tool.code }}" class="btn-icon" title="Lihat Detail" aria-label="Lihat Detail">◎</a>
-            <a href="/admin/tools?action=edit&code={{ tool.code }}" class="btn-icon" title="Edit" aria-label="Edit">✎</a>
+            <a href="/admin/tools?action=edit&code={{ tool.code }}" class="btn-icon" title="Edit" aria-label="Edit"></a>
             <button onclick="generateQR('{{ tool.code }}')" class="btn-icon" title="Generate QR" aria-label="Generate QR" {% if tool.qr_url %}disabled{% endif %}>⌗</button>
             <form action="/admin/tools/action" method="POST" style="display:inline;" onsubmit="event.preventDefault(); const form = this; customConfirm('Yakin hapus alat ini?').then(ok => { if(ok) form.submit(); });">
               <input type="hidden" name="_action" value="delete">
@@ -69,7 +69,7 @@
           </div>
           <div class="meta-item">
             <span class="meta-label">QR Code</span>
-            <span>{{ '✓ Generated' if tool.qr_url else '— Belum' }}</span>
+            <span>{{ ' Generated' if tool.qr_url else '— Belum' }}</span>
           </div>
         </div>
 
@@ -161,9 +161,9 @@
       
       <!-- Summary Badges -->
       <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
-        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;" id="badgeToolValid">🟢 0 Siap</span>
-        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEF9C3;color:#A16207;" id="badgeToolDup">🟡 0 Kode Duplikat</span>
-        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;" id="badgeToolInvalid">🔴 0 Tidak Lengkap</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;" id="badgeToolValid"> 0 Siap</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEF9C3;color:#A16207;" id="badgeToolDup"> 0 Kode Duplikat</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;" id="badgeToolInvalid"> 0 Tidak Lengkap</span>
       </div>
 
       <!-- Preview Table Scroll Area -->
@@ -242,9 +242,9 @@ async function handleToolPreview(e) {
 
     // Populate preview step
     document.getElementById('toolTempFileId').value = data.temp_file_id;
-    document.getElementById('badgeToolValid').innerText = `🟢 ${data.valid_count} Siap Di-import`;
-    document.getElementById('badgeToolDup').innerText = `🟡 ${data.duplicate_count} Kode Duplikat (Dilewati)`;
-    document.getElementById('badgeToolInvalid').innerText = `🔴 ${data.invalid_count} Tidak Lengkap (Dilewati)`;
+    document.getElementById('badgeToolValid').innerText = ` ${data.valid_count} Siap Di-import`;
+    document.getElementById('badgeToolDup').innerText = ` ${data.duplicate_count} Kode Duplikat (Dilewati)`;
+    document.getElementById('badgeToolInvalid').innerText = ` ${data.invalid_count} Tidak Lengkap (Dilewati)`;
 
     const tbody = document.getElementById('toolPreviewTbody');
     tbody.innerHTML = data.rows.map(r => `

@@ -84,7 +84,7 @@
         {% if b.borrow_distance_meters is not none or b.device_info or b.ip_address %}
         <div style="margin-top:0.75rem;padding:0.5rem 0.75rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:6px;color:var(--ink-2);">
-            <span style="font-weight:700;color:var(--ink);">📍 Posisi:</span>
+            <span style="font-weight:700;color:var(--ink);"> Posisi:</span>
             {% if b.borrow_distance_meters is not none %}
               <span class="badge" style="background:{% if b.borrow_distance_meters <= ((b.school.max_geofence_radius_meters if b.school else 200) or 200) %}#DCFCE7;color:#15803D{% else %}#FEE2E2;color:#B91C1C{% endif %};font-weight:700;padding:2px 8px;border-radius:12px;font-size:0.6875rem;">
                 {{ b.borrow_distance_meters|int }}m dari Lab

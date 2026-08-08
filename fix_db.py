@@ -27,8 +27,8 @@ def fix_db():
         ("students", "spam_count", "INTEGER DEFAULT 0"),
         ("students", "banned_until", "TEXT"),
         ("tools", "school_id", "INTEGER"),
-        ("tools", "icon", "TEXT DEFAULT '📦'"),
-        ("tools", "photo_emoji", "TEXT DEFAULT '🔧'"),
+        ("tools", "icon", "TEXT DEFAULT ''"),
+        ("tools", "photo_emoji", "TEXT DEFAULT '[FIX]'"),
         ("borrowings", "school_id", "INTEGER"),
         ("borrowings", "extend_count", "INTEGER DEFAULT 0"),
         ("borrowings", "force_returned", "INTEGER DEFAULT 0"),
@@ -47,7 +47,7 @@ def fix_db():
             existing_cols = [c[1] for c in cursor.fetchall()]
             if col not in existing_cols:
                 cursor.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} {col_def}")
-                print(f"✅ Added missing column {tbl}.{col}")
+                print(f"[SUCCESS] Added missing column {tbl}.{col}")
         except Exception as e:
             print(f"Skipping migration {tbl}.{col}: {e}")
 
@@ -87,7 +87,7 @@ def fix_db():
                             dd = p[0].zfill(2)
                             n_val = f"{yyyy}-{mm}-{dd} {t_part}"
                             cursor.execute(f"UPDATE [{t}] SET [{col}] = ? WHERE rowid = ?", (n_val, r_id))
-                            print(f"✅ Fixed [{t}].[{col}] (rowid {r_id}): {val} -> {n_val}")
+                            print(f"[SUCCESS] Fixed [{t}].[{col}] (rowid {r_id}): {val} -> {n_val}")
                             fixed_count += 1
         except Exception as e:
             print(f"Skipping {t}: {e}")
@@ -95,7 +95,7 @@ def fix_db():
     conn.commit()
     conn.close()
     print("==========================================")
-    print(f"🎉 SUKSES: Total {fixed_count} tanggal bermasalah berhasil diperbaiki!")
+    print(f"[DONE] SUKSES: Total {fixed_count} tanggal bermasalah berhasil diperbaiki!")
     print("==========================================")
 
 if __name__ == "__main__":

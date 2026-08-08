@@ -70,7 +70,7 @@
             </div>
 
             <div class="card-actions" style="display:flex;gap:6px;">
-              <a href="/admin/students?action=edit&nis={{ s.nis }}" class="btn-icon" title="Edit Siswa" style="padding:6px;border-radius:6px;border:1px solid var(--line);font-size:0.875rem;">✎</a>
+              <a href="/admin/students?action=edit&nis={{ s.nis }}" class="btn-icon" title="Edit Siswa" style="padding:6px;border-radius:6px;border:1px solid var(--line);font-size:0.875rem;"></a>
               <button type="button" class="btn-icon danger" title="Hapus Permanen" onclick="openSingleDeleteModal('{{ s.nis }}', '{{ s.name }}')" style="padding:6px;border-radius:6px;border:1px solid var(--line);font-size:0.875rem;color:#DC2626;">×</button>
             </div>
           </div>
@@ -90,19 +90,19 @@
             <!-- Status Active / Banned Badge -->
             {% if s.is_banned %}
               <span class="status-badge borrowed" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;font-weight:700;">
-                🔴 Banned ({{ s.banned_remaining_str or 'Nonaktif' }})
+                Banned ({{ s.banned_remaining_str or 'Nonaktif' }})
               </span>
             {% elif not s.is_active %}
               <span class="status-badge borrowed" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#F1F5F9;color:#64748B;font-weight:700;">
-                ✕ Nonaktif
+                Nonaktif
               </span>
             {% elif s.spam_count > 0 %}
               <span class="status-badge" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#FEF3C7;color:#D97706;font-weight:700;">
-                ⚠️ Teguran: {{ s.spam_count }}/3
+                Teguran: {{ s.spam_count }}/3
               </span>
             {% else %}
               <span class="status-badge available" style="font-size:0.6875rem;padding:3px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;font-weight:700;">
-                ✓ Akun Aktif
+                Akun Aktif
               </span>
             {% endif %}
 
@@ -111,7 +111,7 @@
                 <input type="hidden" name="_action" value="unblock">
                 <input type="hidden" name="nis" value="{{ s.nis }}">
                 <button type="submit" class="btn btn-secondary btn-sm" style="font-size:0.6875rem;padding:3px 10px;font-weight:700;color:#15803D;border-color:rgba(21,128,61,0.3);background:rgba(220,252,231,0.5);">
-                  🟢 Unblock / Reset
+                   Unblock / Reset
                 </button>
               </form>
             {% endif %}
@@ -130,10 +130,10 @@
           </div>
           <div class="bulk-bar-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <button type="submit" onclick="submitBulkAction('activate')" class="bulk-bar-btn" style="background:#16A34A;color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;">
-              ✓ Aktifkan
+               Aktifkan
             </button>
             <button type="submit" onclick="submitBulkAction('deactivate')" class="bulk-bar-btn" style="background:#EAB308;color:#000000;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;">
-              ✕ Nonaktifkan
+              x Nonaktifkan
             </button>
             <button type="button" onclick="openBulkDeleteModal()" class="bulk-bar-btn danger" style="background:#DC2626;color:#FFFFFF;border:0;padding:8px 14px;border-radius:8px;font-size:0.8125rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -336,9 +336,9 @@ function clearBulkSelection(formId, barId) {
       
       <!-- Summary Badges -->
       <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
-        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;" id="badgeStdValid">🟢 0 Siap</span>
-        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEF9C3;color:#A16207;" id="badgeStdDup">🟡 0 Duplikat</span>
-        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;" id="badgeStdInvalid">🔴 0 Tidak Lengkap</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#DCFCE7;color:#15803D;" id="badgeStdValid"> 0 Siap</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEF9C3;color:#A16207;" id="badgeStdDup"> 0 Duplikat</span>
+        <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#FEE2E2;color:#B91C1C;" id="badgeStdInvalid"> 0 Tidak Lengkap</span>
       </div>
 
       <!-- Preview Table Scroll Area -->
@@ -416,9 +416,9 @@ async function handleStudentPreview(e) {
 
     // Populate preview step
     document.getElementById('stdTempFileId').value = data.temp_file_id;
-    document.getElementById('badgeStdValid').innerText = `🟢 ${data.valid_count} Siap Di-import`;
-    document.getElementById('badgeStdDup').innerText = `🟡 ${data.duplicate_count} NIS Duplikat (Dilewati)`;
-    document.getElementById('badgeStdInvalid').innerText = `🔴 ${data.invalid_count} Tidak Lengkap (Dilewati)`;
+    document.getElementById('badgeStdValid').innerText = ` ${data.valid_count} Siap Di-import`;
+    document.getElementById('badgeStdDup').innerText = ` ${data.duplicate_count} NIS Duplikat (Dilewati)`;
+    document.getElementById('badgeStdInvalid').innerText = ` ${data.invalid_count} Tidak Lengkap (Dilewati)`;
 
     const tbody = document.getElementById('stdPreviewTbody');
     tbody.innerHTML = data.rows.map(r => `

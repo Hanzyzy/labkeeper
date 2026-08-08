@@ -1037,7 +1037,7 @@ def create_app() -> Flask:
             s.banned_until = None
             s.spam_count = 0
             db.session.commit()
-            flash(f"🟢 Akun siswa {s.name} (NIS: {s.nis}) telah dibuka blokirnya dan jumlah teguran telah di-reset ke 0.", "success")
+            flash(f"Akun siswa {s.name} (NIS: {s.nis}) telah dibuka blokirnya dan jumlah teguran telah di-reset ke 0.", "success")
             return redirect(url_for("admin_students"))
         
         return redirect(url_for("admin_students"))
@@ -1313,7 +1313,7 @@ def create_app() -> Flask:
                     invalid_count += 1
                     parsed_rows.append({
                         "row_idx": i + 1, "nis": nis or "-", "name": name or "-", "class_name": class_name or "-",
-                        "status": "invalid", "status_label": "🔴 Data Tidak Lengkap (Dilewati)"
+                        "status": "invalid", "status_label": "Data Tidak Lengkap (Dilewati)"
                     })
                     continue
 
@@ -1321,14 +1321,14 @@ def create_app() -> Flask:
                     duplicate_count += 1
                     parsed_rows.append({
                         "row_idx": i + 1, "nis": nis, "name": name, "class_name": class_name,
-                        "status": "duplicate", "status_label": "🟡 NIS Sudah Ada (Dilewati)"
+                        "status": "duplicate", "status_label": "NIS Sudah Ada (Dilewati)"
                     })
                     continue
 
                 valid_count += 1
                 parsed_rows.append({
                     "row_idx": i + 1, "nis": nis, "name": name, "class_name": class_name,
-                    "status": "valid", "status_label": "🟢 Siap Di-import"
+                    "status": "valid", "status_label": "Siap Di-import"
                 })
 
             if not parsed_rows:
@@ -1542,7 +1542,7 @@ def create_app() -> Flask:
                     invalid_count += 1
                     parsed_rows.append({
                         "row_idx": i + 1, "code": code or "-", "name": name or "-", "category": category, "lab_location": lab_location or "-",
-                        "status": "invalid", "status_label": "🔴 Data Tidak Lengkap (Dilewati)"
+                        "status": "invalid", "status_label": "Data Tidak Lengkap (Dilewati)"
                     })
                     continue
 
@@ -1550,14 +1550,14 @@ def create_app() -> Flask:
                     duplicate_count += 1
                     parsed_rows.append({
                         "row_idx": i + 1, "code": code, "name": name, "category": category, "lab_location": lab_location or "-",
-                        "status": "duplicate", "status_label": "🟡 Kode Sudah Ada (Dilewati)"
+                        "status": "duplicate", "status_label": "Kode Sudah Ada (Dilewati)"
                     })
                     continue
 
                 valid_count += 1
                 parsed_rows.append({
                     "row_idx": i + 1, "code": code, "name": name, "category": category, "lab_location": lab_location or "-",
-                    "status": "valid", "status_label": "🟢 Siap Di-import & Generate QR"
+                    "status": "valid", "status_label": "Siap Di-import & Generate QR"
                 })
 
             if not parsed_rows:

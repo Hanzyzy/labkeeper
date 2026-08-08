@@ -243,9 +243,9 @@ class Tool(db.Model):
     lab_location = db.Column(db.String(50))                                    # Rak A3
     condition = db.Column(db.String(20), default="Baik")                       # Baik / Rusak Ringan / Rusak Berat
     description = db.Column(db.Text)
-    photo_emoji = db.Column(db.String(10), default="🔧")                        # placeholder visual
+    photo_emoji = db.Column(db.String(10), default="[FIX]")                        # placeholder visual
     qr_path = db.Column(db.String(200))                                         # static/qr_codes/MTR-001.png
-    icon = db.Column(db.String(10), default="📦")                              # visual icon
+    icon = db.Column(db.String(10), default="")                              # visual icon
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(SafeDateTime, default=wib_now)
 

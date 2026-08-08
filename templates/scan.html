@@ -152,7 +152,7 @@ async function startScanner() {
   } catch (err) {
     console.error('Scanner error:', err);
     isScanning = false;
-    if (statusDiv) statusDiv.textContent = '✕ Gagal membuka kamera';
+    if (statusDiv) statusDiv.textContent = 'x Gagal membuka kamera';
     if (flashDiv) {
       flashDiv.textContent = 'Error: ' + err.message + '. Pastikan izin kamera aktif & menggunakan HTTPS jika dari HP lain.';
       flashDiv.style.color = 'var(--ink)';
@@ -174,7 +174,7 @@ function handleScanResult(codeText, statusDiv, flashDiv) {
 
   if (isInvalidFormat) {
     isScanning = false;
-    if (statusDiv) statusDiv.textContent = '✕ QR Code Tidak Dikenal';
+    if (statusDiv) statusDiv.textContent = 'x QR Code Tidak Dikenal';
     if (flashDiv) {
       flashDiv.textContent = 'QR Code ini bukan milik alat LabKeeper.';
       flashDiv.style.color = 'var(--ink)';
@@ -192,7 +192,7 @@ function handleScanResult(codeText, statusDiv, flashDiv) {
   isScanning = false;
   stopScanner();
 
-  if (statusDiv) statusDiv.textContent = '✓ QR Terdeteksi! Mengalihkan...';
+  if (statusDiv) statusDiv.textContent = ' QR Terdeteksi! Mengalihkan...';
   if (flashDiv) {
     flashDiv.textContent = 'Berhasil scan: ' + cleanCode.toUpperCase();
     flashDiv.style.color = 'var(--ink)';

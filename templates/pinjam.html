@@ -155,19 +155,19 @@ document.addEventListener("DOMContentLoaded", function() {
       statusBox.style.background = "var(--bg)";
       statusBox.style.color = "var(--ink)";
       statusBox.style.border = "1px solid var(--line)";
-      statusText.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;">🔄</span> <span>${msg}</span>`;
+      statusText.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;"></span> <span>${msg}</span>`;
       setSubmitButtonState('loading');
     } else if (type === 'success') {
       statusBox.style.background = "#DCFCE7";
       statusBox.style.color = "#15803D";
       statusBox.style.border = "1px solid #86EFAC";
-      statusText.innerHTML = `<span>✔ ${msg}</span>`;
+      statusText.innerHTML = `<span> ${msg}</span>`;
       setSubmitButtonState('unlocked');
     } else if (type === 'error') {
       statusBox.style.background = "#FEE2E2";
       statusBox.style.color = "#B91C1C";
       statusBox.style.border = "1px solid #FCA5A5";
-      statusText.innerHTML = `<span>✖ ${msg}</span>`;
+      statusText.innerHTML = `<span>x ${msg}</span>`;
       setSubmitButtonState('locked');
     }
   }
